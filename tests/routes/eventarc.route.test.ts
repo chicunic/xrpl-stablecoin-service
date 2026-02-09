@@ -40,7 +40,10 @@ jest.mock("../../src/token/services/trustline.service", () => ({
   ensureTrustLine: jest.fn().mockResolvedValue(undefined),
 }));
 
+import { getTokenConfig } from "../../src/token/config/tokens";
 import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
+
+const ISSUER_ADDRESS = getTokenConfig("JPYN").issuerAddress;
 
 // Helper to create Eventarc CloudEvent body with Firestore document format
 function createEventarcBody(txHash: string, fields: Record<string, unknown>) {
@@ -131,7 +134,7 @@ describe("Eventarc Routes - REST API Integration", () => {
           Amount: mapVal({
             currency: stringVal("JPYN"),
             value: stringVal("100"),
-            issuer: stringVal("rJ8u2J3UoU9cK4LwZZe1rSXmbZmF3nwvQy"),
+            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
         meta: mapVal({
@@ -139,7 +142,7 @@ describe("Eventarc Routes - REST API Integration", () => {
           delivered_amount: mapVal({
             currency: stringVal("JPYN"),
             value: stringVal("100"),
-            issuer: stringVal("rJ8u2J3UoU9cK4LwZZe1rSXmbZmF3nwvQy"),
+            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
       });
@@ -185,7 +188,7 @@ describe("Eventarc Routes - REST API Integration", () => {
           Amount: mapVal({
             currency: stringVal("JPYN"),
             value: stringVal("100"),
-            issuer: stringVal("rJ8u2J3UoU9cK4LwZZe1rSXmbZmF3nwvQy"),
+            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
         meta: mapVal({
@@ -209,7 +212,7 @@ describe("Eventarc Routes - REST API Integration", () => {
           Amount: mapVal({
             currency: stringVal("JPYN"),
             value: stringVal("50"),
-            issuer: stringVal("rJ8u2J3UoU9cK4LwZZe1rSXmbZmF3nwvQy"),
+            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
         meta: mapVal({
@@ -217,7 +220,7 @@ describe("Eventarc Routes - REST API Integration", () => {
           delivered_amount: mapVal({
             currency: stringVal("JPYN"),
             value: stringVal("50"),
-            issuer: stringVal("rJ8u2J3UoU9cK4LwZZe1rSXmbZmF3nwvQy"),
+            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
       });
@@ -245,7 +248,7 @@ describe("Eventarc Routes - REST API Integration", () => {
           Amount: mapVal({
             currency: stringVal("JPYN"),
             value: stringVal("100"),
-            issuer: stringVal("rJ8u2J3UoU9cK4LwZZe1rSXmbZmF3nwvQy"),
+            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
         meta: mapVal({
@@ -253,7 +256,7 @@ describe("Eventarc Routes - REST API Integration", () => {
           delivered_amount: mapVal({
             currency: stringVal("JPYN"),
             value: stringVal("100"),
-            issuer: stringVal("rJ8u2J3UoU9cK4LwZZe1rSXmbZmF3nwvQy"),
+            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
       });

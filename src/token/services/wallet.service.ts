@@ -10,18 +10,10 @@ async function getMnemonic(): Promise<string> {
     return cachedMnemonic;
   }
 
-  // Prefer env var for local development
-  const envMnemonic = process.env.MNEMONIC;
-  if (envMnemonic) {
-    cachedMnemonic = envMnemonic;
-    return cachedMnemonic;
-  }
-
   if (!MNEMONIC_SECRET_PATH) {
     throw new Error("MNEMONIC_SECRET_PATH is not configured");
   }
 
-  // Fall back to Secret Manager for production
   const { SecretManagerServiceClient } = await import("@google-cloud/secret-manager");
   const secretClient = new SecretManagerServiceClient();
 

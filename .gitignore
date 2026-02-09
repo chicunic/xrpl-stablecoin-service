@@ -155,4 +155,5 @@ vite.config.ts.timestamp-*
 .augment/
 .devin/
 .v0/
+.gemini/
 .mcp.json

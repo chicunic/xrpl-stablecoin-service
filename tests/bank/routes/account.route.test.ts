@@ -60,7 +60,7 @@ describe("Bank Account Routes - REST API Integration", () => {
   describe("POST /api/v1/accounts/login", () => {
     it("should login with valid credentials", async () => {
       mockAccountService.login.mockResolvedValue(MOCK_BANK_ACCOUNT);
-      mockBankAuth.generateToken.mockReturnValue("mock-jwt-token");
+      mockBankAuth.generateToken.mockResolvedValue("mock-jwt-token");
 
       const response = await helper.post("/api/v1/accounts/login", {
         branchCode: TEST_BANK_BRANCH_CODE,
@@ -159,7 +159,7 @@ describe("Bank Account Routes - REST API Integration", () => {
   describe("POST /api/v1/accounts/me/api-token", () => {
     it("should generate API token for corporate account", async () => {
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
-      mockBankAuth.generateApiToken.mockReturnValue("mock-api-token");
+      mockBankAuth.generateApiToken.mockResolvedValue("mock-api-token");
 
       const response = await helper.post("/api/v1/accounts/me/api-token", {}, { Authorization: "Bearer mock-token" });
 

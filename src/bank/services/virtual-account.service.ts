@@ -104,21 +104,6 @@ export async function updateVirtualAccount(
   return updated.data() as BankVirtualAccountData;
 }
 
-export async function getVirtualAccountByNumber(accountNumber: string): Promise<BankVirtualAccountData | null> {
-  const db = getFirestore();
-  const snapshot = await db
-    .collection(BANK_VIRTUAL_ACCOUNTS_COLLECTION)
-    .where("accountNumber", "==", accountNumber)
-    .limit(1)
-    .get();
-
-  if (snapshot.empty) {
-    return null;
-  }
-
-  return snapshot.docs[0]?.data() as BankVirtualAccountData;
-}
-
 export async function getVirtualAccountByBranchAndNumber(
   branchCode: string,
   accountNumber: string,

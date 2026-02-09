@@ -4,7 +4,7 @@ dotenv.config();
 
 import { getTokenConfig } from "@token/config/tokens.js";
 import { fundAccount } from "@token/services/faucet.service.js";
-import { signWithKms } from "@token/services/kms.service.js";
+import { signWithKms } from "@token/services/signing.service.js";
 import { disconnect, getClient } from "@token/services/xrpl.service.js";
 import type { AccountSet } from "xrpl";
 import { encodeForSigning } from "xrpl";

@@ -4,7 +4,6 @@ export const mockAccountService = {
   createAccount: createJestMock(),
   login: createJestMock(),
   getAccountById: createJestMock(),
-  getAccountByNumber: createJestMock(),
   verifyPin: createJestMock(),
   updateBalance: createJestMock(),
   lookupAccount: createJestMock(),
@@ -14,7 +13,6 @@ export const mockAccountService = {
     mockAccountService.createAccount.mockResolvedValue({});
     mockAccountService.login.mockResolvedValue({});
     mockAccountService.getAccountById.mockResolvedValue(null);
-    mockAccountService.getAccountByNumber.mockResolvedValue(null);
     mockAccountService.verifyPin.mockResolvedValue(undefined);
     mockAccountService.updateBalance.mockResolvedValue(undefined);
     mockAccountService.lookupAccount.mockResolvedValue(null);
@@ -25,7 +23,6 @@ export const mockAccountService = {
     mockAccountService.createAccount.mockReset();
     mockAccountService.login.mockReset();
     mockAccountService.getAccountById.mockReset();
-    mockAccountService.getAccountByNumber.mockReset();
     mockAccountService.verifyPin.mockReset();
     mockAccountService.updateBalance.mockReset();
     mockAccountService.lookupAccount.mockReset();
@@ -65,7 +62,6 @@ export function enableAccountServiceMock() {
     createAccount: mockAccountService.createAccount,
     login: mockAccountService.login,
     getAccountById: mockAccountService.getAccountById,
-    getAccountByNumber: mockAccountService.getAccountByNumber,
     verifyPin: mockAccountService.verifyPin,
     updateBalance: mockAccountService.updateBalance,
     lookupAccount: mockAccountService.lookupAccount,
@@ -93,20 +89,17 @@ export const mockVirtualAccountService = {
   listVirtualAccounts: createJestMock(),
   getVirtualAccountById: createJestMock(),
   updateVirtualAccount: createJestMock(),
-  getVirtualAccountByNumber: createJestMock(),
   setup: () => {
     mockVirtualAccountService.createVirtualAccount.mockResolvedValue({});
     mockVirtualAccountService.listVirtualAccounts.mockResolvedValue([]);
     mockVirtualAccountService.getVirtualAccountById.mockResolvedValue(null);
     mockVirtualAccountService.updateVirtualAccount.mockResolvedValue({});
-    mockVirtualAccountService.getVirtualAccountByNumber.mockResolvedValue(null);
   },
   reset: () => {
     mockVirtualAccountService.createVirtualAccount.mockReset();
     mockVirtualAccountService.listVirtualAccounts.mockReset();
     mockVirtualAccountService.getVirtualAccountById.mockReset();
     mockVirtualAccountService.updateVirtualAccount.mockReset();
-    mockVirtualAccountService.getVirtualAccountByNumber.mockReset();
   },
 };
 
@@ -116,6 +109,5 @@ export function enableVirtualAccountServiceMock() {
     listVirtualAccounts: mockVirtualAccountService.listVirtualAccounts,
     getVirtualAccountById: mockVirtualAccountService.getVirtualAccountById,
     updateVirtualAccount: mockVirtualAccountService.updateVirtualAccount,
-    getVirtualAccountByNumber: mockVirtualAccountService.getVirtualAccountByNumber,
   });
 }

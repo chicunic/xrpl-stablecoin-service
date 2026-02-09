@@ -9,15 +9,26 @@ export interface TokenConfig {
 }
 
 const TOKEN_CONFIGS: Record<string, TokenConfig> = {
+  // kms config
+  // JPYN: {
+  //   tokenId: "JPYN",
+  //   name: "JPYN",
+  //   currency: "JPYN",
+  //   domain: "nexbridge.dev",
+  //   issuerAddress: "rn5ojQQQocq8hwyVz5HkVgFi3KHjHpSCgV",
+  //   kmsKeyPath:
+  //     "projects/nexbridge-486208/locations/us-central1/keyRings/xrpl-signing/cryptoKeys/jpyn-ed25519/cryptoKeyVersions/1",
+  //   signingPublicKey: "EDAFC69A09FD2BD760973F7A3E3DC672DC1FD0A70270C3652A36664232FE0EFDE4",
+  // },
+  // sm config
   JPYN: {
     tokenId: "JPYN",
     name: "JPYN",
     currency: "JPYN",
     domain: "nexbridge.dev",
-    issuerAddress: "rJ8u2J3UoU9cK4LwZZe1rSXmbZmF3nwvQy",
-    kmsKeyPath:
-      "projects/nexbridge-486208/locations/us-central1/keyRings/xrpl-signing/cryptoKeys/jpyn-issuer-testnet/cryptoKeyVersions/1",
-    signingPublicKey: "02F081705E404140E1D05A6B7B3A13103C1128EE84247CE5CF8518042E4B7A9FAD",
+    issuerAddress: "rpPqDaWncvBULqLLZULS4svoi1fxW4sPjp",
+    kmsKeyPath: "projects/nexbridge-486208/secrets/xrpl-issuer-seed/versions/latest",
+    signingPublicKey: "ED9CBF796AF94F722DE72A56FFD44E2239E92151A593BE69E51FDF86DDEA04EEE5",
   },
 };
 

@@ -1,9 +1,15 @@
-import { signWithKms } from "@token/services/kms.service.js";
+import { signWithKms } from "@token/services/signing.service.js";
 import { getWalletForSigning } from "@token/services/wallet.service.js";
 import type { AccountLinesResponse, Payment, SubmitResponse } from "xrpl";
 import { Client, encodeForSigning } from "xrpl";
 
-const XRPL_URL = process.env.XRPL_URL ?? "wss://s.altnet.rippletest.net:51233";
+const network = process.env.XRPL_NETWORK ?? "testnet";
+const XRPL_URL =
+  network === "mainnet"
+    ? "wss://xrplcluster.com"
+    : network === "devnet"
+      ? "wss://s.devnet.rippletest.net:51233"
+      : "wss://s.altnet.rippletest.net:51233";
 
 let client: Client | null = null;
 

@@ -18,6 +18,19 @@ A JPY stablecoin (JPYN) platform on the XRPL. Consists of two Cloud Run services
 - **Eventarc** — Triggered when a new document is added to the Firestore `tokenTransactions` collection; processes on-chain XRPL token deposits
 - **Pub/Sub** — Pushes bank deposit events to the Token service to automatically credit fiat balances
 
+### Signing
+
+XRPL transaction signing uses **ed25519**. Two backends are available, controlled by `SIGNING_PROVIDER`:
+
+| Provider | `SIGNING_PROVIDER` | Description |
+| - | - | - |
+| Secret Manager | `sm` (default) | Stores the issuer seed in Google Cloud Secret Manager. Signing is done in-process |
+| Cloud KMS | `kms` | Uses Google Cloud KMS ed25519 key. Private key never leaves KMS |
+
+### Environment Variables
+
+See [`.env.example`](.env.example) for all available variables. All secrets are stored in Google Cloud Secret Manager.
+
 ## Bank Service API
 
 | Method | Path | Description |

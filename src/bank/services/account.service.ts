@@ -103,21 +103,6 @@ export async function getAccountById(accountId: string): Promise<BankAccountData
   return doc.data() as BankAccountData;
 }
 
-export async function getAccountByNumber(accountNumber: string): Promise<BankAccountData | null> {
-  const db = getFirestore();
-  const snapshot = await db
-    .collection(BANK_ACCOUNTS_COLLECTION)
-    .where("accountNumber", "==", accountNumber)
-    .limit(1)
-    .get();
-
-  if (snapshot.empty) {
-    return null;
-  }
-
-  return snapshot.docs[0]?.data() as BankAccountData;
-}
-
 export async function getAccountByBranchAndNumber(
   branchCode: string,
   accountNumber: string,

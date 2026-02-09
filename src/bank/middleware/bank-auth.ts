@@ -10,12 +10,32 @@ export interface BankAuthenticatedRequest extends Request {
   };
 }
 
-function getJwtSecret(): string {
-  const secret = process.env.BANK_JWT_SECRET;
-  if (!secret) {
-    throw new Error("BANK_JWT_SECRET environment variable is required");
+const BANK_JWT_SECRET_PATH = process.env.BANK_JWT_SECRET_PATH;
+let cachedJwtSecret: string | null = null;
+
+async function getJwtSecret(): Promise<string> {
+  if (cachedJwtSecret) {
+    return cachedJwtSecret;
   }
-  return secret;
+
+  if (!BANK_JWT_SECRET_PATH) {
+    throw new Error("BANK_JWT_SECRET_PATH is not configured");
+  }
+
+  const { SecretManagerServiceClient } = await import("@google-cloud/secret-manager");
+  const secretClient = new SecretManagerServiceClient();
+
+  const [version] = await secretClient.accessSecretVersion({
+    name: BANK_JWT_SECRET_PATH,
+  });
+
+  const payload = version.payload?.data;
+  if (!payload) {
+    throw new Error("Failed to retrieve BANK_JWT_SECRET from Secret Manager");
+  }
+
+  cachedJwtSecret = typeof payload === "string" ? payload : new TextDecoder().decode(payload as Uint8Array);
+  return cachedJwtSecret;
 }
 
 function base64UrlEncode(data: string): string {
@@ -30,7 +50,7 @@ function sign(payload: string, secret: string): string {
   return createHmac("sha256", secret).update(payload).digest("base64url");
 }
 
-export function generateToken(accountId: string): string {
+export async function generateToken(accountId: string): Promise<string> {
   const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const payload = base64UrlEncode(
     JSON.stringify({
@@ -39,11 +59,11 @@ export function generateToken(accountId: string): string {
       exp: Math.floor(Date.now() / 1000) + 86400, // 24 hours
     }),
   );
-  const signature = sign(`${header}.${payload}`, getJwtSecret());
+  const signature = sign(`${header}.${payload}`, await getJwtSecret());
   return `${header}.${payload}.${signature}`;
 }
 
-export function generateApiToken(accountId: string): string {
+export async function generateApiToken(accountId: string): Promise<string> {
   const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const payload = base64UrlEncode(
     JSON.stringify({
@@ -52,18 +72,18 @@ export function generateApiToken(accountId: string): string {
       iat: Math.floor(Date.now() / 1000),
     }),
   );
-  const signature = sign(`${header}.${payload}`, getJwtSecret());
+  const signature = sign(`${header}.${payload}`, await getJwtSecret());
   return `${header}.${payload}.${signature}`;
 }
 
-export function verifyToken(token: string): { accountId: string; tokenType: TokenType } {
+export async function verifyToken(token: string): Promise<{ accountId: string; tokenType: TokenType }> {
   const parts = token.split(".");
   if (parts.length !== 3) {
     throw new Error("Invalid token format");
   }
 
   const [header, payload, signature] = parts as [string, string, string];
-  const expectedSignature = sign(`${header}.${payload}`, getJwtSecret());
+  const expectedSignature = sign(`${header}.${payload}`, await getJwtSecret());
 
   const sigBuffer = Buffer.from(signature);
   const expectedBuffer = Buffer.from(expectedSignature);
@@ -101,7 +121,7 @@ export async function requireBankAuth(req: Request, res: Response, next: NextFun
   }
 
   try {
-    const decoded = verifyToken(token);
+    const decoded = await verifyToken(token);
     (req as BankAuthenticatedRequest).bankUser = {
       accountId: decoded.accountId,
       tokenType: decoded.tokenType,

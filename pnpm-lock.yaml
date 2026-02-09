@@ -41,6 +41,9 @@ importers:
       helmet:
         specifier: ^8.1.0
         version: 8.1.0
+      ripple-keypairs:
+        specifier: ^2.0.0
+        version: 2.0.0
       swagger-ui-express:
         specifier: ^5.0.1
         version: 5.0.1(express@5.2.1)

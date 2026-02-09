@@ -44,7 +44,7 @@ router.post("/accounts/login", async (req: Request, res: Response) => {
     };
 
     const account = await login(branchCode, accountNumber, pin);
-    const token = generateToken(account.accountId);
+    const token = await generateToken(account.accountId);
 
     const { pin: _, ...safeAccount } = account;
 
@@ -124,7 +124,7 @@ router.post("/accounts/me/api-token", requireBankAuth, rejectApiToken, async (re
       return;
     }
 
-    const apiToken = generateApiToken(accountId);
+    const apiToken = await generateApiToken(accountId);
     res.json({ token: apiToken });
   } catch (error) {
     handleRouteError(error, res, "POST /accounts/me/api-token");

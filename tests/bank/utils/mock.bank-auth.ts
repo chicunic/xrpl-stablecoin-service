@@ -1,7 +1,5 @@
 import { createJestMock, createSimpleModuleMock } from "../../utils/mock.factory";
-import { TEST_BANK_ACCOUNT_ID, TEST_BANK_JWT_SECRET } from "./data";
-
-process.env.BANK_JWT_SECRET = TEST_BANK_JWT_SECRET;
+import { TEST_BANK_ACCOUNT_ID } from "./data";
 
 const mockBankAuthModule = {
   requireBankAuth: createJestMock(),
@@ -25,9 +23,9 @@ export const mockBankAuth = {
     mockBankAuthModule.rejectApiToken.mockImplementation((_req: any, _res: any, next: any) => {
       next();
     });
-    mockBankAuthModule.generateToken.mockReturnValue("mock-bank-jwt-token");
-    mockBankAuthModule.generateApiToken.mockReturnValue("mock-bank-api-token");
-    mockBankAuthModule.verifyToken.mockReturnValue({ accountId: TEST_BANK_ACCOUNT_ID, tokenType: "session" });
+    mockBankAuthModule.generateToken.mockResolvedValue("mock-bank-jwt-token");
+    mockBankAuthModule.generateApiToken.mockResolvedValue("mock-bank-api-token");
+    mockBankAuthModule.verifyToken.mockResolvedValue({ accountId: TEST_BANK_ACCOUNT_ID, tokenType: "session" });
   },
   reset: () => {
     mockBankAuthModule.requireBankAuth.mockReset();

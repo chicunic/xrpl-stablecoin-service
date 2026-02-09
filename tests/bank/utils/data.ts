@@ -3,8 +3,6 @@ export const TEST_BANK_ACCOUNT_NUMBER = "0000001";
 export const TEST_BANK_BRANCH_CODE = "001";
 export const TEST_BANK_PIN = "1234";
 export const TEST_BANK_ACCOUNT_HOLDER = "テスト太郎";
-export const TEST_BANK_JWT_SECRET = "test-bank-jwt-secret-for-testing";
-
 export const MOCK_BANK_ACCOUNT = {
   accountId: TEST_BANK_ACCOUNT_ID,
   accountNumber: TEST_BANK_ACCOUNT_NUMBER,
