@@ -137,3 +137,22 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# macOS
+.DS_Store
+
+# AI Agents
+.claude/
+.cursor/
+.windsurf/
+.codeium/
+.continue/
+.aider*
+.copilot/
+.github/copilot/
+.tabnine/
+.cody/
+.augment/
+.devin/
+.v0/
+.mcp.json

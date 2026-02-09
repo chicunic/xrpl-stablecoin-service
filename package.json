@@ -1,0 +1,61 @@
+{
+  "name": "xrpl-jpy-stablecoin",
+  "version": "0.1.0",
+  "description": "XRPL Token Insurance Demo - REST API backend on Google Cloud Run",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "rm -rf dist && tsc && tsc-alias",
+    "start": "node dist/${SERVICE:-token}/index.js",
+    "start:token": "node dist/token/index.js",
+    "start:bank": "node dist/bank/index.js",
+    "dev:token": "tsx watch src/token/index.ts",
+    "dev:bank": "tsx watch src/bank/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check",
+    "lint:fix": "biome check --write --unsafe",
+    "check": "pnpm run typecheck && pnpm run lint",
+    "fix": "pnpm run lint:fix",
+    "test": "jest --verbose",
+    "test:watch": "jest --watch --verbose",
+    "test:coverage": "jest --coverage --verbose",
+    "setup:issuer": "tsx src/scripts/setup-issuer.ts"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@google-cloud/kms": "^5.3.0",
+    "@google-cloud/pubsub": "^5.2.2",
+    "@google-cloud/secret-manager": "^6.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "express-openapi-validator": "^5.6.2",
+    "firebase-admin": "^13.6.1",
+    "google-auth-library": "^10.5.0",
+    "helmet": "^8.1.0",
+    "swagger-ui-express": "^5.0.1",
+    "xrpl": "^4.5.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.14",
+    "@jest/globals": "^30.2.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.2.1",
+    "@types/supertest": "^6.0.3",
+    "@types/swagger-ui-express": "^4.1.8",
+    "bip39": "^3.1.0",
+    "jest": "^30.2.0",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

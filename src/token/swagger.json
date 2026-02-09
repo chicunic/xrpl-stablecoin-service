@@ -1,0 +1,1026 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "XRPL Token Insurance Demo API",
+    "version": "0.4.0",
+    "description": "REST API for XRPL Token Insurance Demo platform - stablecoin (JPYN) issuance with fiat↔token exchange"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Current server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Google OAuth2 ID Token"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": { "type": "string" }
+        }
+      },
+      "BankAccount": {
+        "type": "object",
+        "required": ["bankCode", "branchCode", "accountNumber", "accountHolder", "label"],
+        "properties": {
+          "bankCode": { "type": "string" },
+          "branchCode": { "type": "string" },
+          "accountNumber": { "type": "string" },
+          "accountHolder": { "type": "string" },
+          "label": { "type": "string" },
+          "createdAt": { "type": "string" }
+        }
+      },
+      "VirtualAccount": { "$ref": "#/components/schemas/BankAccount" },
+      "Wallet": {
+        "type": "object",
+        "properties": {
+          "address": { "type": "string" },
+          "bipIndex": { "type": "integer" },
+          "createdAt": { "type": "string" }
+        }
+      },
+      "WhitelistAddress": {
+        "type": "object",
+        "properties": {
+          "address": { "type": "string" },
+          "label": { "type": "string" },
+          "createdAt": { "type": "string" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "uid": { "type": "string" },
+          "email": { "type": "string" },
+          "name": { "type": "string" },
+          "fiatBalance": { "type": "number" },
+          "createdAt": { "type": "string" }
+        }
+      },
+      "Token": {
+        "type": "object",
+        "properties": {
+          "tokenId": { "type": "string" },
+          "name": { "type": "string" },
+          "currency": { "type": "string" },
+          "domain": { "type": "string" },
+          "issuerAddress": { "type": "string" },
+          "createdAt": { "type": "string" }
+        }
+      },
+      "FiatTransaction": {
+        "type": "object",
+        "properties": {
+          "transactionId": { "type": "string" },
+          "type": { "type": "string", "enum": ["deposit", "withdrawal", "exchange_in", "exchange_out"] },
+          "amount": { "type": "number" },
+          "balance": { "type": "number" },
+          "description": { "type": "string" },
+          "relatedOrderId": { "type": "string" },
+          "createdAt": { "type": "string" }
+        }
+      },
+      "ExchangeOrder": {
+        "type": "object",
+        "properties": {
+          "orderId": { "type": "string" },
+          "userId": { "type": "string" },
+          "tokenId": { "type": "string" },
+          "direction": { "type": "string", "enum": ["fiat_to_token", "token_to_fiat"] },
+          "amount": { "type": "number" },
+          "status": { "type": "string", "enum": ["pending", "fiat_debited", "token_burned", "completed", "failed"] },
+          "xrplTxHash": { "type": "string" },
+          "failureReason": { "type": "string" },
+          "createdAt": { "type": "string" },
+          "updatedAt": { "type": "string" }
+        }
+      },
+      "FiatWithdrawalResult": {
+        "type": "object",
+        "properties": {
+          "amount": { "type": "number" },
+          "destination": {
+            "type": "object",
+            "properties": {
+              "bankCode": { "type": "string" },
+              "branchCode": { "type": "string" },
+              "accountNumber": { "type": "string" },
+              "accountHolder": { "type": "string" }
+            }
+          },
+          "txReference": { "type": "string" }
+        }
+      },
+      "XrpWithdrawalResult": {
+        "type": "object",
+        "properties": {
+          "tokenId": { "type": "string" },
+          "amount": { "type": "number" },
+          "destinationAddress": { "type": "string" },
+          "xrplTxHash": { "type": "string" }
+        }
+      },
+      "XrpTransaction": {
+        "type": "object",
+        "properties": {
+          "transactionId": { "type": "string" },
+          "tokenId": { "type": "string" },
+          "type": { "type": "string", "enum": ["deposit", "withdrawal", "exchange_in", "exchange_out"] },
+          "amount": { "type": "number" },
+          "balance": { "type": "number" },
+          "description": { "type": "string" },
+          "relatedOrderId": { "type": "string" },
+          "createdAt": { "type": "string" }
+        }
+      },
+      "TokenBalanceSummary": {
+        "type": "object",
+        "properties": {
+          "tokenId": { "type": "string" },
+          "name": { "type": "string" },
+          "currency": { "type": "string" },
+          "issuerAddress": { "type": "string" },
+          "hasTrustline": { "type": "boolean" },
+          "balance": { "type": "number" }
+        }
+      },
+      "PubSubEnvelope": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "object",
+            "required": ["data", "messageId"],
+            "properties": {
+              "data": { "type": "string", "description": "Base64-encoded JSON payload" },
+              "messageId": { "type": "string" }
+            }
+          },
+          "subscription": { "type": "string" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "healthCheck",
+        "summary": "Health check",
+        "tags": ["Health"],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status", "timestamp"],
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "operationId": "getCurrentUser",
+        "summary": "Get current user info (creates basic user record on first call)",
+        "tags": ["Auth"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Current user info",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/wallet": {
+      "post": {
+        "operationId": "setupWallet",
+        "summary": "Set up XRP wallet for current user",
+        "tags": ["Auth"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Wallet created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "address": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "409": {
+            "description": "Wallet already set up",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/virtual-account": {
+      "post": {
+        "operationId": "setupVirtualAccount",
+        "summary": "Set up virtual bank account for current user",
+        "tags": ["Auth"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Virtual account created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VirtualAccount" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "409": {
+            "description": "Virtual account already set up",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tokens": {
+      "get": {
+        "operationId": "listTokens",
+        "summary": "List stablecoins",
+        "tags": ["Token"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Token" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tokens/{tokenId}": {
+      "get": {
+        "operationId": "getToken",
+        "summary": "Get stablecoin details",
+        "tags": ["Token"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "tokenId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Token" }
+              }
+            }
+          },
+          "404": {
+            "description": "Token not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balance/fiat": {
+      "get": {
+        "operationId": "getFiatBalance",
+        "summary": "Get user's fiat balance",
+        "tags": ["Balance"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Fiat balance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "balance": { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balance/xrp": {
+      "get": {
+        "operationId": "getXrpBalance",
+        "summary": "Get user's XRP token balances (on-chain)",
+        "tags": ["Balance"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "XRP balances",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "address": { "type": "string" },
+                    "balances": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "currency": { "type": "string" },
+                          "value": { "type": "string" },
+                          "issuer": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balance/fiat/transactions": {
+      "get": {
+        "operationId": "getFiatTransactions",
+        "summary": "Get user's fiat transaction history",
+        "tags": ["Balance"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Fiat transactions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/FiatTransaction" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balance/xrp/transactions": {
+      "get": {
+        "operationId": "getXrpTransactions",
+        "summary": "Get user's XRP token transaction history",
+        "tags": ["Balance"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "XRP transactions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/XrpTransaction" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/balance/tokens": {
+      "get": {
+        "operationId": "getTokenBalances",
+        "summary": "Get user's token balances with trustline status",
+        "tags": ["Balance"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Token balances",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/TokenBalanceSummary" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exchange/fiat-to-xrp": {
+      "post": {
+        "operationId": "exchangeFiatToToken",
+        "summary": "Exchange fiat to XRP token",
+        "tags": ["Exchange"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tokenId", "fiatAmount"],
+                "properties": {
+                  "tokenId": { "type": "string" },
+                  "fiatAmount": { "type": "number", "minimum": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Exchange order created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ExchangeOrder" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exchange/xrp-to-fiat": {
+      "post": {
+        "operationId": "exchangeTokenToFiat",
+        "summary": "Exchange XRP token to fiat",
+        "tags": ["Exchange"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tokenId", "tokenAmount"],
+                "properties": {
+                  "tokenId": { "type": "string" },
+                  "tokenAmount": { "type": "number", "minimum": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Exchange order created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ExchangeOrder" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/whitelist/xrp": {
+      "get": {
+        "operationId": "getXrpWhitelist",
+        "summary": "Get XRP withdrawal address whitelist",
+        "tags": ["Whitelist"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "XRP whitelist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/WhitelistAddress" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addXrpWhitelist",
+        "summary": "Add XRP address to whitelist",
+        "tags": ["Whitelist"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["address", "label"],
+                "properties": {
+                  "address": { "type": "string" },
+                  "label": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Address added to whitelist",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WhitelistAddress" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/whitelist/xrp/{address}": {
+      "delete": {
+        "operationId": "removeXrpWhitelist",
+        "summary": "Remove XRP address from whitelist",
+        "tags": ["Whitelist"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Address removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Address not found in whitelist",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/whitelist/bank": {
+      "get": {
+        "operationId": "getBankWhitelist",
+        "summary": "Get bank withdrawal whitelist",
+        "tags": ["Whitelist"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Bank whitelist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/BankAccount" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "addBankWhitelist",
+        "summary": "Add bank account to whitelist",
+        "tags": ["Whitelist"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["bankCode", "branchCode", "accountNumber", "accountHolder", "label"],
+                "properties": {
+                  "bankCode": { "type": "string" },
+                  "branchCode": { "type": "string" },
+                  "accountNumber": { "type": "string" },
+                  "accountHolder": { "type": "string" },
+                  "label": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Bank account added to whitelist",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BankAccount" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/whitelist/bank/{id}": {
+      "delete": {
+        "operationId": "removeBankWhitelist",
+        "summary": "Remove bank account from whitelist (id = branchCode-accountNumber)",
+        "tags": ["Whitelist"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Format: branchCode-accountNumber"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bank account removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Bank account not found in whitelist",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/withdraw/fiat": {
+      "post": {
+        "operationId": "withdrawFiat",
+        "summary": "Withdraw fiat to bank account",
+        "tags": ["Withdrawal"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "bankAccount"],
+                "properties": {
+                  "amount": { "type": "number", "minimum": 1 },
+                  "bankAccount": { "$ref": "#/components/schemas/BankAccount" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Fiat withdrawal result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FiatWithdrawalResult" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/withdraw/xrp": {
+      "post": {
+        "operationId": "withdrawXrp",
+        "summary": "Withdraw XRP token to external address",
+        "tags": ["Withdrawal"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tokenId", "tokenAmount", "destinationAddress"],
+                "properties": {
+                  "tokenId": { "type": "string" },
+                  "tokenAmount": { "type": "number", "minimum": 1 },
+                  "destinationAddress": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "XRP withdrawal result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/XrpWithdrawalResult" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tokens/{tokenId}/trustline": {
+      "post": {
+        "operationId": "ensureTrustLine",
+        "summary": "Ensure TrustLine exists for current user on a token",
+        "tags": ["Token"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "tokenId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TrustLine set (or already exists)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tokenId": { "type": "string" },
+                    "currency": { "type": "string" },
+                    "status": { "type": "string", "example": "ok" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Token or user not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pubsub/bank/deposit": {
+      "post": {
+        "operationId": "pubsubBankDeposit",
+        "summary": "Pub/Sub push endpoint for bank deposit events",
+        "tags": ["Pubsub"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PubSubEnvelope" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message acknowledged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "reason": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Processing failed (triggers Pub/Sub retry)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/eventarc/xrpl/deposit": {
+      "post": {
+        "operationId": "eventarcXrplDeposit",
+        "summary": "Eventarc Firestore trigger endpoint for XRPL token deposit events",
+        "tags": ["Eventarc"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "document": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "fields": { "type": "object" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event processed or skipped",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "reason": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Processing failed (triggers Eventarc retry)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

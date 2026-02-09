@@ -1,0 +1,112 @@
+substitutions:
+  _REGION: us-central1
+  _SERVICE_ACCOUNT: xrpl-token-sa@nexbridge-486208.iam.gserviceaccount.com
+  _GOOGLE_CLIENT_ID: ""  # Set in Cloud Build trigger configuration
+  _XRPL_URL: wss://s.altnet.rippletest.net:51233
+
+steps:
+  # 1. Deploy bank service
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "deploy-bank"
+    args:
+      - "run"
+      - "deploy"
+      - "xrpl-bank"
+      - "--source=."
+      - "--region=${_REGION}"
+      - "--service-account=${_SERVICE_ACCOUNT}"
+      - "--memory=512Mi"
+      - "--cpu=1"
+      - "--max-instances=2"
+      - "--min-instances=0"
+      - "--set-env-vars=SERVICE=bank,NODE_ENV=staging,LOG_LEVEL=info,GCP_PROJECT_ID=${PROJECT_ID}"
+      - "--set-secrets=BANK_JWT_SECRET=bank-jwt-secret:latest"
+      - "--startup-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=10"
+      - "--liveness-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=300"
+      - "--ingress=all"
+      - "--no-allow-unauthenticated"
+
+  # 2. Get bank service URL → deploy token service
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "deploy-token"
+    waitFor: ["deploy-bank"]
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        BANK_URL=$(gcloud run services describe xrpl-bank \
+          --region=${_REGION} --format='value(status.url)')
+        gcloud run deploy xrpl-token \
+          --source=. \
+          --region=${_REGION} \
+          --service-account=${_SERVICE_ACCOUNT} \
+          --memory=512Mi \
+          --cpu=1 \
+          --max-instances=2 \
+          --min-instances=0 \
+          --set-env-vars="\
+        SERVICE=token,\
+        NODE_ENV=staging,\
+        LOG_LEVEL=info,\
+        GCP_PROJECT_ID=${PROJECT_ID},\
+        XRPL_URL=${_XRPL_URL},\
+        BANK_SERVICE_URL=$$BANK_URL,\
+        GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID},\
+        MNEMONIC_SECRET_PATH=projects/${PROJECT_ID}/secrets/xrpl-mnemonic/versions/latest,\
+        BANK_AUTH_TOKEN_SECRET_PATH=projects/${PROJECT_ID}/secrets/bank-auth-token/versions/latest" \
+          --startup-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=10 \
+          --liveness-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=300 \
+          --ingress=all \
+          --no-allow-unauthenticated
+
+  # 3. Setup Pub/Sub: bank deposit events → token service
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "setup-pubsub"
+    waitFor: ["deploy-token"]
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        TOKEN_URL=$(gcloud run services describe xrpl-token \
+          --region=${_REGION} --format='value(status.url)')
+        gcloud pubsub topics describe bank-deposit-events 2>/dev/null || \
+          gcloud pubsub topics create bank-deposit-events
+        if gcloud pubsub subscriptions describe bank-deposit-push 2>/dev/null; then
+          gcloud pubsub subscriptions update bank-deposit-push \
+            --push-endpoint="$$TOKEN_URL/api/v1/pubsub/bank/deposit" \
+            --push-auth-service-account=${_SERVICE_ACCOUNT}
+        else
+          gcloud pubsub subscriptions create bank-deposit-push \
+            --topic=bank-deposit-events \
+            --push-endpoint="$$TOKEN_URL/api/v1/pubsub/bank/deposit" \
+            --push-auth-service-account=${_SERVICE_ACCOUNT} \
+            --ack-deadline=60 \
+            --min-retry-delay=10s \
+            --max-retry-delay=600s
+        fi
+
+  # 4. Setup Eventarc: Firestore tokenTransactions → token service
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "setup-eventarc"
+    waitFor: ["deploy-token"]
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        if gcloud eventarc triggers describe xrpl-token-deposit \
+          --location=${_REGION} 2>/dev/null; then
+          echo "Eventarc trigger already exists"
+        else
+          gcloud eventarc triggers create xrpl-token-deposit \
+            --location=${_REGION} \
+            --destination-run-service=xrpl-token \
+            --destination-run-region=${_REGION} \
+            --destination-run-path=/api/v1/eventarc/xrpl/deposit \
+            --event-filters="type=google.cloud.firestore.document.v1.created" \
+            --event-filters="database=(default)" \
+            --event-filters-path-pattern="document=tokenTransactions/{txHash}" \
+            --service-account=${_SERVICE_ACCOUNT}
+        fi
+
+options:
+  logging: CLOUD_LOGGING_ONLY
