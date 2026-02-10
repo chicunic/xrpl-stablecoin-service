@@ -36,15 +36,16 @@ export function requireMfa(req: Request, res: Response, next: NextFunction): voi
 }
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const sessionCookie = (req.cookies as Record<string, string | undefined>)?.__session;
+  const authHeader = req.headers.authorization;
+  const sessionToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
 
-  if (!sessionCookie) {
-    res.status(401).json({ error: "Missing session cookie" });
+  if (!sessionToken) {
+    res.status(401).json({ error: "Missing session token" });
     return;
   }
 
   try {
-    const decoded = await getProjectAuth().verifySessionCookie(sessionCookie, true);
+    const decoded = await getProjectAuth().verifySessionCookie(sessionToken, true);
     if (!decoded.email || !decoded.email_verified) {
       res.status(401).json({ error: "Invalid or expired session" });
       return;
@@ -64,7 +65,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 }
 
 export async function requireOperationMfa(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const token = (req.cookies as Record<string, string | undefined>)?.__mfa_token;
+  const token = req.headers["x-mfa-token"] as string | undefined;
   if (!token) {
     res.status(403).json({ error: "MFA verification required", code: "MFA_REQUIRED" });
     return;
@@ -73,7 +74,6 @@ export async function requireOperationMfa(req: Request, res: Response, next: Nex
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     await verifyMfaToken(token, uid);
-    res.clearCookie("__mfa_token", { path: "/api/v1" });
     next();
   } catch {
     res.status(403).json({ error: "MFA verification required", code: "MFA_REQUIRED" });

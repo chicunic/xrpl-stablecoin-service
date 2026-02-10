@@ -13,11 +13,6 @@
   ],
   "components": {
     "securitySchemes": {
-      "CookieAuth": {
-        "type": "apiKey",
-        "in": "cookie",
-        "name": "__session"
-      },
       "BearerAuth": {
         "type": "http",
         "scheme": "bearer",
@@ -268,7 +263,7 @@
         "operationId": "getBankAccountMe",
         "summary": "Get current account info",
         "tags": ["Account"],
-        "security": [{ "CookieAuth": [] }, { "BearerAuth": [] }],
+        "security": [{ "BearerAuth": [] }],
         "responses": {
           "200": {
             "description": "Account info",
@@ -292,7 +287,7 @@
         "operationId": "updateBankAccountMe",
         "summary": "Update current account info",
         "tags": ["Account"],
-        "security": [{ "CookieAuth": [] }, { "BearerAuth": [] }],
+        "security": [{ "BearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -345,7 +340,7 @@
         "operationId": "generateApiToken",
         "summary": "Generate a long-lived API token (corporate only)",
         "tags": ["Account"],
-        "security": [{ "CookieAuth": [] }, { "BearerAuth": [] }],
+        "security": [{ "BearerAuth": [] }],
         "responses": {
           "200": {
             "description": "API token generated",
@@ -393,7 +388,7 @@
         "operationId": "createVirtualAccount",
         "summary": "Create a virtual account (corporate only)",
         "tags": ["Virtual Account"],
-        "security": [{ "CookieAuth": [] }, { "BearerAuth": [] }],
+        "security": [{ "BearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -439,7 +434,7 @@
         "operationId": "listVirtualAccounts",
         "summary": "List virtual accounts (corporate only)",
         "tags": ["Virtual Account"],
-        "security": [{ "CookieAuth": [] }, { "BearerAuth": [] }],
+        "security": [{ "BearerAuth": [] }],
         "responses": {
           "200": {
             "description": "Virtual account list",
@@ -468,7 +463,7 @@
         "operationId": "getVirtualAccount",
         "summary": "Get virtual account details (corporate only)",
         "tags": ["Virtual Account"],
-        "security": [{ "CookieAuth": [] }, { "BearerAuth": [] }],
+        "security": [{ "BearerAuth": [] }],
         "parameters": [
           {
             "name": "virtualAccountId",
@@ -508,7 +503,7 @@
         "operationId": "updateVirtualAccount",
         "summary": "Update virtual account (corporate only)",
         "tags": ["Virtual Account"],
-        "security": [{ "CookieAuth": [] }, { "BearerAuth": [] }],
+        "security": [{ "BearerAuth": [] }],
         "parameters": [
           {
             "name": "virtualAccountId",
@@ -564,7 +559,7 @@
         "operationId": "atmDeposit",
         "summary": "ATM cash deposit",
         "tags": ["ATM"],
-        "security": [{ "CookieAuth": [] }, { "BearerAuth": [] }],
+        "security": [{ "BearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -610,7 +605,7 @@
         "operationId": "atmWithdrawal",
         "summary": "ATM cash withdrawal",
         "tags": ["ATM"],
-        "security": [{ "CookieAuth": [] }, { "BearerAuth": [] }],
+        "security": [{ "BearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -656,7 +651,7 @@
         "operationId": "createTransfer",
         "summary": "Transfer funds to another account",
         "tags": ["Transfer"],
-        "security": [{ "CookieAuth": [] }, { "BearerAuth": [] }],
+        "security": [{ "BearerAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -711,7 +706,7 @@
         "operationId": "listTransactions",
         "summary": "List transaction history",
         "tags": ["Transaction"],
-        "security": [{ "CookieAuth": [] }, { "BearerAuth": [] }],
+        "security": [{ "BearerAuth": [] }],
         "responses": {
           "200": {
             "description": "Transaction list",

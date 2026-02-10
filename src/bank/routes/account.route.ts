@@ -48,12 +48,6 @@ router.post("/accounts/login", async (req: Request, res: Response) => {
 
     const { pin: _, ...safeAccount } = account;
 
-    res.cookie("__session", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      maxAge: 86400 * 1000, // 24 hours
-    });
     res.json({ token, account: safeAccount });
   } catch (error) {
     handleRouteError(error, res, "POST /accounts/login");
@@ -61,11 +55,6 @@ router.post("/accounts/login", async (req: Request, res: Response) => {
 });
 
 router.post("/accounts/logout", (_req: Request, res: Response) => {
-  res.clearCookie("__session", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-  });
   res.json({ message: "Logged out" });
 });
 

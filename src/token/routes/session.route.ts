@@ -8,16 +8,6 @@ const router: RouterType = Router();
 const SESSION_EXPIRES_IN = 14 * 24 * 60 * 60 * 1000; // 14 days
 const AUTH_TIME_MAX_AGE = 5 * 60; // 5 minutes
 
-function sessionCookieOptions() {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV !== "development",
-    sameSite: "lax" as const,
-    maxAge: SESSION_EXPIRES_IN,
-    path: "/",
-  };
-}
-
 router.post("/session/login", async (req: Request, res: Response) => {
   try {
     const { idToken } = req.body as { idToken?: string };
@@ -34,12 +24,11 @@ router.post("/session/login", async (req: Request, res: Response) => {
       return;
     }
 
-    const sessionCookie = await getProjectAuth().createSessionCookie(idToken, {
+    const sessionToken = await getProjectAuth().createSessionCookie(idToken, {
       expiresIn: SESSION_EXPIRES_IN,
     });
 
-    res.cookie("__session", sessionCookie, sessionCookieOptions());
-    res.json({ status: "ok" });
+    res.json({ status: "ok", sessionToken });
   } catch (error) {
     handleRouteError(error, res, "POST /session/login");
   }
@@ -47,7 +36,8 @@ router.post("/session/login", async (req: Request, res: Response) => {
 
 router.post("/session/refresh", async (req: Request, res: Response) => {
   try {
-    const existingSession = (req.cookies as Record<string, string | undefined>)?.__session;
+    const authHeader = req.headers.authorization;
+    const existingSession = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
     if (!existingSession) {
       res.status(401).json({ error: "No existing session" });
       return;
@@ -62,19 +52,17 @@ router.post("/session/refresh", async (req: Request, res: Response) => {
       return;
     }
 
-    const sessionCookie = await getProjectAuth().createSessionCookie(idToken, {
+    const sessionToken = await getProjectAuth().createSessionCookie(idToken, {
       expiresIn: SESSION_EXPIRES_IN,
     });
 
-    res.cookie("__session", sessionCookie, sessionCookieOptions());
-    res.json({ status: "ok" });
+    res.json({ status: "ok", sessionToken });
   } catch (error) {
     handleRouteError(error, res, "POST /session/refresh");
   }
 });
 
 router.post("/session/logout", (_req: Request, res: Response) => {
-  res.clearCookie("__session", { path: "/" });
   res.json({ status: "ok" });
 });
 

@@ -111,8 +111,6 @@ export async function requireBankAuth(req: Request, res: Response, next: NextFun
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith("Bearer ")) {
     token = authHeader.slice(7);
-  } else {
-    token = (req.cookies as Record<string, string | undefined>)?.__session;
   }
 
   if (!token) {

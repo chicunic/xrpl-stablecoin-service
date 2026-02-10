@@ -23,7 +23,7 @@ describe("requireAuth middleware", () => {
     mockIdentityPlatformAuth.reset();
     mockIdentityPlatformAuth.setup();
 
-    mockReq = { headers: {}, cookies: {} };
+    mockReq = { headers: {} };
     mockRes = {
       status: jest.fn().mockReturnThis() as any,
       json: jest.fn().mockReturnThis() as any,
@@ -35,16 +35,16 @@ describe("requireAuth middleware", () => {
     mockIdentityPlatformAuth.reset();
   });
 
-  it("should return 401 if no session cookie", async () => {
+  it("should return 401 if no Authorization header", async () => {
     await requireAuth(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
-    expect(mockRes.json).toHaveBeenCalledWith({ error: "Missing session cookie" });
+    expect(mockRes.json).toHaveBeenCalledWith({ error: "Missing session token" });
     expect(mockNext).not.toHaveBeenCalled();
   });
 
-  it("should return 401 if session cookie is invalid", async () => {
-    (mockReq as any).cookies = { __session: "invalid-session" };
+  it("should return 401 if session token is invalid", async () => {
+    mockReq.headers = { authorization: "Bearer invalid-session" };
     mockIdentityPlatformAuth.verifySessionCookie.mockRejectedValue(new Error("Error expected in test: invalid"));
 
     await requireAuth(mockReq as Request, mockRes as Response, mockNext);
@@ -55,7 +55,7 @@ describe("requireAuth middleware", () => {
   });
 
   it("should return 401 if email is not verified", async () => {
-    (mockReq as any).cookies = { __session: "valid-session" };
+    mockReq.headers = { authorization: "Bearer valid-session" };
     mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue({
       uid: "google-uid-123456",
       email: "test@example.com",
@@ -69,7 +69,7 @@ describe("requireAuth middleware", () => {
   });
 
   it("should call next and set user on valid session with MFA and KYC", async () => {
-    (mockReq as any).cookies = { __session: "valid-session" };
+    mockReq.headers = { authorization: "Bearer valid-session" };
 
     await requireAuth(mockReq as Request, mockRes as Response, mockNext);
 
@@ -83,7 +83,7 @@ describe("requireAuth middleware", () => {
   });
 
   it("should set mfaVerified to false and kycStatus to none when not in token", async () => {
-    (mockReq as any).cookies = { __session: "valid-session" };
+    mockReq.headers = { authorization: "Bearer valid-session" };
     mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue({
       uid: "google-uid-123456",
       email: "test@example.com",
@@ -101,7 +101,7 @@ describe("requireAuth middleware", () => {
   });
 
   it("should set authTime from decoded token", async () => {
-    (mockReq as any).cookies = { __session: "valid-session" };
+    mockReq.headers = { authorization: "Bearer valid-session" };
     const authTime = Math.floor(Date.now() / 1000);
     mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue({
       uid: "google-uid-123456",
@@ -219,17 +219,15 @@ describe("requireOperationMfa middleware", () => {
     mockVerifyMfaToken.mockReset();
     mockReq = {
       headers: {},
-      cookies: {},
     };
     mockRes = {
       status: jest.fn().mockReturnThis() as any,
       json: jest.fn().mockReturnThis() as any,
-      clearCookie: jest.fn() as any,
     };
     mockNext = jest.fn();
   });
 
-  it("should return 403 if no __mfa_token cookie", async () => {
+  it("should return 403 if no X-MFA-Token header", async () => {
     (mockReq as AuthenticatedRequest).user = {
       uid: "google-uid-123456",
       email: "test@example.com",
@@ -255,7 +253,7 @@ describe("requireOperationMfa middleware", () => {
       kycStatus: "approved",
       authTime: Math.floor(Date.now() / 1000),
     };
-    (mockReq as any).cookies = { __mfa_token: "invalid-token" };
+    mockReq.headers = { "x-mfa-token": "invalid-token" };
     mockVerifyMfaToken.mockRejectedValue(new Error("Invalid MFA token"));
 
     await requireOperationMfa(mockReq as Request, mockRes as Response, mockNext);
@@ -265,7 +263,7 @@ describe("requireOperationMfa middleware", () => {
     expect(mockNext).not.toHaveBeenCalled();
   });
 
-  it("should call next and clear cookie on valid token", async () => {
+  it("should call next on valid token", async () => {
     (mockReq as AuthenticatedRequest).user = {
       uid: "google-uid-123456",
       email: "test@example.com",
@@ -274,13 +272,12 @@ describe("requireOperationMfa middleware", () => {
       kycStatus: "approved",
       authTime: Math.floor(Date.now() / 1000),
     };
-    (mockReq as any).cookies = { __mfa_token: "valid-mfa-token" };
+    mockReq.headers = { "x-mfa-token": "valid-mfa-token" };
     mockVerifyMfaToken.mockResolvedValue(undefined);
 
     await requireOperationMfa(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockVerifyMfaToken).toHaveBeenCalledWith("valid-mfa-token", "google-uid-123456");
-    expect(mockRes.clearCookie).toHaveBeenCalledWith("__mfa_token", { path: "/api/v1" });
     expect(mockNext).toHaveBeenCalled();
   });
 });

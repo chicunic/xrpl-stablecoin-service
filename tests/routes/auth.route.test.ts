@@ -76,7 +76,7 @@ describe("Auth Routes - REST API Integration", () => {
       );
 
       const response = await helper.get("/api/v1/users/me", {
-        Cookie: "__session=invalid-session",
+        Authorization: "Bearer invalid-session",
       });
 
       restAssert.expectError(response, 401);
@@ -90,7 +90,7 @@ describe("Auth Routes - REST API Integration", () => {
       });
 
       const response = await helper.get("/api/v1/users/me", {
-        Cookie: "__session=valid-session",
+        Authorization: "Bearer valid-session",
       });
 
       restAssert.expectSuccess(response);
@@ -107,7 +107,7 @@ describe("Auth Routes - REST API Integration", () => {
         .mockResolvedValueOnce({ exists: true, data: () => MOCK_USER_DOC_BASE });
 
       const response = await helper.get("/api/v1/users/me", {
-        Cookie: "__session=valid-session",
+        Authorization: "Bearer valid-session",
       });
 
       restAssert.expectSuccess(response);
@@ -133,7 +133,7 @@ describe("Auth Routes - REST API Integration", () => {
         "/api/v1/users/me/wallet",
         {},
         {
-          Cookie: "__session=valid-session",
+          Authorization: "Bearer valid-session",
         },
       );
 
@@ -152,7 +152,7 @@ describe("Auth Routes - REST API Integration", () => {
         "/api/v1/users/me/wallet",
         {},
         {
-          Cookie: "__session=valid-session",
+          Authorization: "Bearer valid-session",
         },
       );
 
@@ -178,7 +178,7 @@ describe("Auth Routes - REST API Integration", () => {
         "/api/v1/users/me/virtual-account",
         {},
         {
-          Cookie: "__session=valid-session",
+          Authorization: "Bearer valid-session",
         },
       );
 
@@ -199,7 +199,7 @@ describe("Auth Routes - REST API Integration", () => {
         "/api/v1/users/me/virtual-account",
         {},
         {
-          Cookie: "__session=valid-session",
+          Authorization: "Bearer valid-session",
         },
       );
 

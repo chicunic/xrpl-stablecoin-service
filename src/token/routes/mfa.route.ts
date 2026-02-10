@@ -25,15 +25,7 @@ router.post("/mfa/verify", requireAuth, async (req, res: Response) => {
 
     const mfaToken = await generateMfaToken(uid);
 
-    res.cookie("__mfa_token", mfaToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV !== "development",
-      sameSite: "strict",
-      maxAge: 300 * 1000,
-      path: "/api/v1",
-    });
-
-    res.json({ status: "ok", expiresIn: 300 });
+    res.json({ status: "ok", mfaToken, expiresIn: 300 });
   } catch (error) {
     handleRouteError(error, res, "POST /mfa/verify");
   }

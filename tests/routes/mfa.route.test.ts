@@ -60,7 +60,7 @@ describe("MFA Routes - REST API Integration", () => {
         "/api/v1/mfa/verify",
         {},
         {
-          Cookie: "__session=valid-session",
+          Authorization: "Bearer valid-session",
         },
       );
 
@@ -83,14 +83,14 @@ describe("MFA Routes - REST API Integration", () => {
         "/api/v1/mfa/verify",
         {},
         {
-          Cookie: "__session=valid-session",
+          Authorization: "Bearer valid-session",
         },
       );
 
       restAssert.expectError(response, 403, "Authentication too old");
     });
 
-    it("should return 200 and set cookie on valid MFA verification", async () => {
+    it("should return 200 and mfaToken in body on valid MFA verification", async () => {
       const recentAuthTime = Math.floor(Date.now() / 1000) - 5; // 5 seconds ago
       mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue({
         uid: "google-uid-123456",
@@ -107,25 +107,15 @@ describe("MFA Routes - REST API Integration", () => {
         "/api/v1/mfa/verify",
         {},
         {
-          Cookie: "__session=valid-session",
+          Authorization: "Bearer valid-session",
         },
       );
 
       restAssert.expectSuccess(response, 200);
       expect(response.body.status).toBe("ok");
+      expect(response.body.mfaToken).toBe("mock-mfa-token-value");
       expect(response.body.expiresIn).toBe(300);
       expect(mockGenerateMfaToken).toHaveBeenCalledWith("google-uid-123456");
-
-      const cookies = response.headers["set-cookie"];
-      expect(cookies).toBeDefined();
-      const mfaCookie = Array.isArray(cookies)
-        ? cookies.find((c: string) => c.startsWith("__mfa_token="))
-        : typeof cookies === "string" && cookies.startsWith("__mfa_token=")
-          ? cookies
-          : undefined;
-      expect(mfaCookie).toBeDefined();
-      expect(mfaCookie).toContain("HttpOnly");
-      expect(mfaCookie).toContain("Path=/api/v1");
     });
   });
 });

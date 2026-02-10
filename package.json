@@ -27,7 +27,6 @@
     "@google-cloud/kms": "^5.3.0",
     "@google-cloud/pubsub": "^5.2.2",
     "@google-cloud/secret-manager": "^6.1.1",
-    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.2.4",
     "express": "^5.2.1",
@@ -42,7 +41,6 @@
   "devDependencies": {
     "@biomejs/biome": "2.3.14",
     "@jest/globals": "^30.2.0",
-    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",

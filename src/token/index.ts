@@ -12,7 +12,6 @@ import sessionRoutes from "@token/routes/session.route.js";
 import tokenRoutes from "@token/routes/token.route.js";
 import whitelistRoutes from "@token/routes/whitelist.route.js";
 import withdrawalRoutes from "@token/routes/withdrawal.route.js";
-import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
@@ -30,10 +29,15 @@ initializeFirebase();
 const app: Express = express();
 const port = process.env.PORT ?? 8080;
 
+const allowedOrigins = [
+  process.env.CORS_ORIGIN ?? "http://localhost:5173",
+  "https://xrpl-token.web.app",
+  "https://xrpl-token.firebaseapp.com",
+];
+
 app.set("json replacer", firestoreTimestampReplacer);
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN ?? "http://localhost:5173", credentials: true }));
-app.use(cookieParser());
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 if (process.env.NODE_ENV === "development") {

@@ -7,7 +7,7 @@ import virtualAccountRoutes from "@bank/routes/virtual-account.route.js";
 import { initializeFirebase } from "@common/config/firebase.js";
 import { initializePubSub } from "@common/config/pubsub.js";
 import { firestoreTimestampReplacer } from "@common/utils/json.replacer.js";
-import cookieParser from "cookie-parser";
+
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
@@ -28,13 +28,13 @@ const port = process.env.PORT ?? 8080;
 
 app.set("json replacer", firestoreTimestampReplacer);
 app.use(helmet());
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN ?? true,
-    credentials: true,
-  }),
-);
-app.use(cookieParser());
+const allowedOrigins = [
+  process.env.CORS_ORIGIN ?? "http://localhost:5174",
+  "https://xrpl-bank.web.app",
+  "https://xrpl-bank.firebaseapp.com",
+];
+app.use(cors({ origin: allowedOrigins }));
+
 app.use(express.json());
 
 if (process.env.NODE_ENV === "development") {

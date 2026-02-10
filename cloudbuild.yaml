@@ -18,7 +18,7 @@ steps:
       - "--memory=512Mi"
       - "--cpu=1"
       - "--max-instances=2"
-      - "--min-instances=0"
+      - "--min-instances=1"
       - "--set-env-vars=SERVICE=bank,NODE_ENV=staging,LOG_LEVEL=info,BANK_JWT_SECRET_PATH=projects/${PROJECT_ID}/secrets/bank-jwt-secret/versions/latest"
       - "--startup-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=10"
       - "--liveness-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=300"
@@ -42,7 +42,7 @@ steps:
           --memory=512Mi \
           --cpu=1 \
           --max-instances=2 \
-          --min-instances=0 \
+          --min-instances=1 \
           --set-env-vars="\
         SERVICE=token,\
         NODE_ENV=staging,\

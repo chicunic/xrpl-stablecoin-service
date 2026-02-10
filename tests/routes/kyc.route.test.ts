@@ -76,7 +76,7 @@ describe("KYC Routes - REST API Integration", () => {
         });
 
       const response = await helper.post("/api/v1/users/me/kyc", VALID_KYC_INPUT, {
-        Cookie: "__session=valid-session",
+        Authorization: "Bearer valid-session",
       });
 
       restAssert.expectSuccess(response, 201);
@@ -93,7 +93,7 @@ describe("KYC Routes - REST API Integration", () => {
       });
 
       const response = await helper.post("/api/v1/users/me/kyc", VALID_KYC_INPUT, {
-        Cookie: "__session=valid-session",
+        Authorization: "Bearer valid-session",
       });
 
       restAssert.expectError(response, 409, "KYC already approved");
@@ -103,7 +103,7 @@ describe("KYC Routes - REST API Integration", () => {
       const response = await helper.post(
         "/api/v1/users/me/kyc",
         { ...VALID_KYC_INPUT, phoneNumber: "12345" },
-        { Cookie: "__session=valid-session" },
+        { Authorization: "Bearer valid-session" },
       );
 
       // OpenAPI validator rejects the pattern before reaching the service
@@ -114,7 +114,7 @@ describe("KYC Routes - REST API Integration", () => {
       const response = await helper.post(
         "/api/v1/users/me/kyc",
         { ...VALID_KYC_INPUT, postalCode: "ABC" },
-        { Cookie: "__session=valid-session" },
+        { Authorization: "Bearer valid-session" },
       );
 
       restAssert.expectError(response, 400);
@@ -124,7 +124,7 @@ describe("KYC Routes - REST API Integration", () => {
       const response = await helper.post(
         "/api/v1/users/me/kyc",
         { fullName: "山田 太郎" },
-        { Cookie: "__session=valid-session" },
+        { Authorization: "Bearer valid-session" },
       );
 
       restAssert.expectError(response, 400);

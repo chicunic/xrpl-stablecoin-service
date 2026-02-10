@@ -1,12 +1,10 @@
 import path from "node:path";
-import cookieParser from "cookie-parser";
 import express from "express";
 import * as OpenApiValidator from "express-openapi-validator";
 import request, { type Response } from "supertest";
 
 function createTestAppWithValidation(): express.Application {
   const app = express();
-  app.use(cookieParser());
   app.use(express.json());
 
   app.use(
