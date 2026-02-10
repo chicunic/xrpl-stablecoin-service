@@ -76,7 +76,7 @@ describe("KYC Routes - REST API Integration", () => {
         });
 
       const response = await helper.post("/api/v1/users/me/kyc", VALID_KYC_INPUT, {
-        Authorization: "Bearer valid-token",
+        Cookie: "__session=valid-session",
       });
 
       restAssert.expectSuccess(response, 201);
@@ -93,7 +93,7 @@ describe("KYC Routes - REST API Integration", () => {
       });
 
       const response = await helper.post("/api/v1/users/me/kyc", VALID_KYC_INPUT, {
-        Authorization: "Bearer valid-token",
+        Cookie: "__session=valid-session",
       });
 
       restAssert.expectError(response, 409, "KYC already approved");
@@ -103,7 +103,7 @@ describe("KYC Routes - REST API Integration", () => {
       const response = await helper.post(
         "/api/v1/users/me/kyc",
         { ...VALID_KYC_INPUT, phoneNumber: "12345" },
-        { Authorization: "Bearer valid-token" },
+        { Cookie: "__session=valid-session" },
       );
 
       // OpenAPI validator rejects the pattern before reaching the service
@@ -114,7 +114,7 @@ describe("KYC Routes - REST API Integration", () => {
       const response = await helper.post(
         "/api/v1/users/me/kyc",
         { ...VALID_KYC_INPUT, postalCode: "ABC" },
-        { Authorization: "Bearer valid-token" },
+        { Cookie: "__session=valid-session" },
       );
 
       restAssert.expectError(response, 400);
@@ -124,47 +124,10 @@ describe("KYC Routes - REST API Integration", () => {
       const response = await helper.post(
         "/api/v1/users/me/kyc",
         { fullName: "山田 太郎" },
-        { Authorization: "Bearer valid-token" },
+        { Cookie: "__session=valid-session" },
       );
 
       restAssert.expectError(response, 400);
-    });
-  });
-
-  describe("GET /api/v1/users/me/kyc", () => {
-    it("should return 401 without auth header", async () => {
-      const response = await helper.get("/api/v1/users/me/kyc");
-
-      restAssert.expectError(response, 401);
-    });
-
-    it("should return KYC info when submitted", async () => {
-      mockFirestoreService.get.mockResolvedValue({
-        exists: true,
-        data: () => MOCK_KYC_DOC,
-      });
-
-      const response = await helper.get("/api/v1/users/me/kyc", {
-        Authorization: "Bearer valid-token",
-      });
-
-      restAssert.expectSuccess(response);
-      expect(response.body.fullName).toBe("山田 太郎");
-      expect(response.body.status).toBe("approved");
-    });
-
-    it("should return status none when KYC not submitted", async () => {
-      mockFirestoreService.get.mockResolvedValue({
-        exists: false,
-        data: () => ({}),
-      });
-
-      const response = await helper.get("/api/v1/users/me/kyc", {
-        Authorization: "Bearer valid-token",
-      });
-
-      restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("none");
     });
   });
 });

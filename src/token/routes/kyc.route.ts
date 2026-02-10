@@ -1,6 +1,6 @@
 import { handleRouteError } from "@common/utils/error.handler.js";
 import { type AuthenticatedRequest, requireAuth } from "@token/middleware/auth.js";
-import { getKyc, submitKyc } from "@token/services/kyc.service.js";
+import { submitKyc } from "@token/services/kyc.service.js";
 import type { Response, Router as RouterType } from "express";
 import { Router } from "express";
 
@@ -14,20 +14,6 @@ router.post("/users/me/kyc", requireAuth, async (req, res: Response) => {
     res.status(201).json(kyc);
   } catch (error) {
     handleRouteError(error, res, "POST /users/me/kyc");
-  }
-});
-
-router.get("/users/me/kyc", requireAuth, async (req, res: Response) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const kyc = await getKyc(uid);
-    if (!kyc) {
-      res.json({ status: "none" });
-      return;
-    }
-    res.json(kyc);
-  } catch (error) {
-    handleRouteError(error, res, "GET /users/me/kyc");
   }
 });
 

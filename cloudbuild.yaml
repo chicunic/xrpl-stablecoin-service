@@ -3,7 +3,6 @@ substitutions:
   _SERVICE_ACCOUNT: xrpl-token-sa@nexbridge-486208.iam.gserviceaccount.com
   _XRPL_NETWORK: testnet
   _SIGNING_PROVIDER: sm
-  _IDENTITY_PLATFORM_TENANT_ID: xrpl-token-testnet-n1511
 
 steps:
   # 1. Deploy bank service
@@ -52,7 +51,6 @@ steps:
         SIGNING_PROVIDER=${_SIGNING_PROVIDER},\
         BANK_SERVICE_URL=$$BANK_URL,\
         MNEMONIC_SECRET_PATH=projects/${PROJECT_ID}/secrets/xrpl-mnemonic/versions/latest,\
-        IDENTITY_PLATFORM_TENANT_ID=${_IDENTITY_PLATFORM_TENANT_ID},\
         BANK_AUTH_TOKEN_SECRET_PATH=projects/${PROJECT_ID}/secrets/bank-auth-token/versions/latest,\
         MFA_TOKEN_SECRET_PATH=projects/${PROJECT_ID}/secrets/mfa-token-secret/versions/latest" \
           --startup-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=10 \

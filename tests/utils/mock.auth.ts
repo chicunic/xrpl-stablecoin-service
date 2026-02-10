@@ -1,44 +1,52 @@
 const mockVerifyIdToken = jest.fn();
+const mockVerifySessionCookie = jest.fn();
+const mockCreateSessionCookie = jest.fn();
 const mockSetCustomUserClaims = jest.fn();
-
-process.env.IDENTITY_PLATFORM_TENANT_ID = "test-tenant-id";
 
 jest.mock("firebase-admin/auth", () => ({
   getAuth: () => ({
-    tenantManager: () => ({
-      authForTenant: () => ({
-        verifyIdToken: mockVerifyIdToken,
-        setCustomUserClaims: mockSetCustomUserClaims,
-      }),
-    }),
+    verifyIdToken: mockVerifyIdToken,
+    verifySessionCookie: mockVerifySessionCookie,
+    createSessionCookie: mockCreateSessionCookie,
+    setCustomUserClaims: mockSetCustomUserClaims,
   }),
 }));
 
 export const mockIdentityPlatformAuth = {
   verifyIdToken: mockVerifyIdToken,
+  verifySessionCookie: mockVerifySessionCookie,
+  createSessionCookie: mockCreateSessionCookie,
   setCustomUserClaims: mockSetCustomUserClaims,
   setupWithoutMfa: () => {
-    mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue({
+    const claims = {
       uid: "google-uid-123456",
       email: "test@example.com",
       name: "Test User",
       email_verified: true,
-    });
+    };
+    mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue(claims);
+    mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue(claims);
+    mockIdentityPlatformAuth.createSessionCookie.mockResolvedValue("mock-session-cookie");
     mockIdentityPlatformAuth.setCustomUserClaims.mockResolvedValue(undefined);
   },
   setup: () => {
-    mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue({
+    const claims = {
       uid: "google-uid-123456",
       email: "test@example.com",
       name: "Test User",
       email_verified: true,
       firebase: { sign_in_second_factor: "phone" },
       kycStatus: "approved",
-    });
+    };
+    mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue(claims);
+    mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue(claims);
+    mockIdentityPlatformAuth.createSessionCookie.mockResolvedValue("mock-session-cookie");
     mockIdentityPlatformAuth.setCustomUserClaims.mockResolvedValue(undefined);
   },
   reset: () => {
     mockIdentityPlatformAuth.verifyIdToken.mockReset();
+    mockIdentityPlatformAuth.verifySessionCookie.mockReset();
+    mockIdentityPlatformAuth.createSessionCookie.mockReset();
     mockIdentityPlatformAuth.setCustomUserClaims.mockReset();
   },
 };

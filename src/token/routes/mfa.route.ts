@@ -27,7 +27,7 @@ router.post("/mfa/verify", requireAuth, async (req, res: Response) => {
 
     res.cookie("__mfa_token", mfaToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV !== "development",
       sameSite: "strict",
       maxAge: 300 * 1000,
       path: "/api/v1",

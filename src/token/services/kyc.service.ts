@@ -1,6 +1,6 @@
 import { getFirestore } from "@common/config/firebase.js";
 import { ConflictError, NotFoundError, ValidationError } from "@common/utils/error.handler.js";
-import { getTenantAuth } from "@token/middleware/auth.js";
+import { getProjectAuth } from "@token/middleware/auth.js";
 import type { KycInfo } from "@token/types/user.type.js";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -77,7 +77,7 @@ export async function submitKyc(uid: string, input: SubmitKycInput): Promise<Kyc
   const kycRef = userRef.collection("kyc").doc("info");
   await kycRef.set(kycData);
   await userRef.update({ kycStatus: "approved" });
-  await getTenantAuth().setCustomUserClaims(uid, { kycStatus: "approved" });
+  await getProjectAuth().setCustomUserClaims(uid, { kycStatus: "approved" });
 
   const created = await kycRef.get();
   return created.data() as KycInfo;

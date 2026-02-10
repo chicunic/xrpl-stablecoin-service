@@ -71,10 +71,12 @@ describe("Auth Routes - REST API Integration", () => {
     });
 
     it("should return 401 with invalid token", async () => {
-      mockIdentityPlatformAuth.verifyIdToken.mockRejectedValue(new Error("Error expected in test: invalid token"));
+      mockIdentityPlatformAuth.verifySessionCookie.mockRejectedValue(
+        new Error("Error expected in test: invalid token"),
+      );
 
       const response = await helper.get("/api/v1/users/me", {
-        Authorization: "Bearer invalid-token",
+        Cookie: "__session=invalid-session",
       });
 
       restAssert.expectError(response, 401);
@@ -88,7 +90,7 @@ describe("Auth Routes - REST API Integration", () => {
       });
 
       const response = await helper.get("/api/v1/users/me", {
-        Authorization: "Bearer valid-token",
+        Cookie: "__session=valid-session",
       });
 
       restAssert.expectSuccess(response);
@@ -105,7 +107,7 @@ describe("Auth Routes - REST API Integration", () => {
         .mockResolvedValueOnce({ exists: true, data: () => MOCK_USER_DOC_BASE });
 
       const response = await helper.get("/api/v1/users/me", {
-        Authorization: "Bearer valid-token",
+        Cookie: "__session=valid-session",
       });
 
       restAssert.expectSuccess(response);
@@ -131,7 +133,7 @@ describe("Auth Routes - REST API Integration", () => {
         "/api/v1/users/me/wallet",
         {},
         {
-          Authorization: "Bearer valid-token",
+          Cookie: "__session=valid-session",
         },
       );
 
@@ -150,7 +152,7 @@ describe("Auth Routes - REST API Integration", () => {
         "/api/v1/users/me/wallet",
         {},
         {
-          Authorization: "Bearer valid-token",
+          Cookie: "__session=valid-session",
         },
       );
 
@@ -176,7 +178,7 @@ describe("Auth Routes - REST API Integration", () => {
         "/api/v1/users/me/virtual-account",
         {},
         {
-          Authorization: "Bearer valid-token",
+          Cookie: "__session=valid-session",
         },
       );
 
@@ -197,7 +199,7 @@ describe("Auth Routes - REST API Integration", () => {
         "/api/v1/users/me/virtual-account",
         {},
         {
-          Authorization: "Bearer valid-token",
+          Cookie: "__session=valid-session",
         },
       );
 

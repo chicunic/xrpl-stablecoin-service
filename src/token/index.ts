@@ -8,6 +8,7 @@ import exchangeRoutes from "@token/routes/exchange.route.js";
 import kycRoutes from "@token/routes/kyc.route.js";
 import mfaRoutes from "@token/routes/mfa.route.js";
 import pubsubRoutes from "@token/routes/pubsub.route.js";
+import sessionRoutes from "@token/routes/session.route.js";
 import tokenRoutes from "@token/routes/token.route.js";
 import whitelistRoutes from "@token/routes/whitelist.route.js";
 import withdrawalRoutes from "@token/routes/withdrawal.route.js";
@@ -31,7 +32,7 @@ const port = process.env.PORT ?? 8080;
 
 app.set("json replacer", firestoreTimestampReplacer);
 app.use(helmet());
-app.use(cors());
+app.use(cors({ origin: process.env.CORS_ORIGIN ?? "http://localhost:5173", credentials: true }));
 app.use(cookieParser());
 app.use(express.json());
 
@@ -52,6 +53,7 @@ app.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+app.use("/api/v1", sessionRoutes);
 app.use("/api/v1", authRoutes);
 app.use("/api/v1", kycRoutes);
 app.use("/api/v1", mfaRoutes);

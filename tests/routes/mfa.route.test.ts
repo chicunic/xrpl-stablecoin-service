@@ -60,7 +60,7 @@ describe("MFA Routes - REST API Integration", () => {
         "/api/v1/mfa/verify",
         {},
         {
-          Authorization: "Bearer valid-token",
+          Cookie: "__session=valid-session",
         },
       );
 
@@ -69,7 +69,7 @@ describe("MFA Routes - REST API Integration", () => {
 
     it("should return 403 if auth_time is too old", async () => {
       const oldAuthTime = Math.floor(Date.now() / 1000) - 60; // 60 seconds ago
-      mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue({
+      mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue({
         uid: "google-uid-123456",
         email: "test@example.com",
         name: "Test User",
@@ -83,7 +83,7 @@ describe("MFA Routes - REST API Integration", () => {
         "/api/v1/mfa/verify",
         {},
         {
-          Authorization: "Bearer valid-token",
+          Cookie: "__session=valid-session",
         },
       );
 
@@ -92,7 +92,7 @@ describe("MFA Routes - REST API Integration", () => {
 
     it("should return 200 and set cookie on valid MFA verification", async () => {
       const recentAuthTime = Math.floor(Date.now() / 1000) - 5; // 5 seconds ago
-      mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue({
+      mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue({
         uid: "google-uid-123456",
         email: "test@example.com",
         name: "Test User",
@@ -107,7 +107,7 @@ describe("MFA Routes - REST API Integration", () => {
         "/api/v1/mfa/verify",
         {},
         {
-          Authorization: "Bearer valid-token",
+          Cookie: "__session=valid-session",
         },
       );
 

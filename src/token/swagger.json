@@ -13,10 +13,10 @@
   ],
   "components": {
     "securitySchemes": {
-      "BearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "Google OAuth2 ID Token"
+      "CookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__session"
       }
     },
     "schemas": {
@@ -64,6 +64,9 @@
           "name": { "type": "string" },
           "fiatBalance": { "type": "number" },
           "kycStatus": { "type": "string", "enum": ["none", "approved"] },
+          "hasWallet": { "type": "boolean" },
+          "hasVirtualAccount": { "type": "boolean" },
+          "walletAddress": { "type": "string" },
           "createdAt": { "type": "string" }
         }
       },
@@ -208,12 +211,139 @@
         }
       }
     },
+    "/api/v1/session/login": {
+      "post": {
+        "operationId": "sessionLogin",
+        "summary": "Create session cookie from Firebase ID Token",
+        "tags": ["Session"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["idToken"],
+                "properties": {
+                  "idToken": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session cookie set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing idToken",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid token or recent sign-in required",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/session/refresh": {
+      "post": {
+        "operationId": "sessionRefresh",
+        "summary": "Refresh session cookie (e.g. after KYC approval updates claims)",
+        "tags": ["Session"],
+        "security": [{ "CookieAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["idToken"],
+                "properties": {
+                  "idToken": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session cookie refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing idToken",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "No existing session or invalid token",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/session/logout": {
+      "post": {
+        "operationId": "sessionLogout",
+        "summary": "Clear session cookie",
+        "tags": ["Session"],
+        "responses": {
+          "200": {
+            "description": "Session cookie cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/me": {
       "get": {
         "operationId": "getCurrentUser",
         "summary": "Get current user info (creates basic user record on first call)",
         "tags": ["Auth"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "200": {
             "description": "Current user info",
@@ -239,7 +369,7 @@
         "operationId": "setupWallet",
         "summary": "Set up XRP wallet for current user",
         "tags": ["Auth"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "201": {
             "description": "Wallet created",
@@ -278,7 +408,7 @@
         "operationId": "getVirtualAccount",
         "summary": "Get current user's virtual bank account",
         "tags": ["Auth"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "200": {
             "description": "Virtual account details",
@@ -310,7 +440,7 @@
         "operationId": "setupVirtualAccount",
         "summary": "Set up virtual bank account for current user",
         "tags": ["Auth"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "201": {
             "description": "Virtual account created",
@@ -340,35 +470,11 @@
       }
     },
     "/api/v1/users/me/kyc": {
-      "get": {
-        "operationId": "getKyc",
-        "summary": "Get current user's KYC info",
-        "tags": ["KYC"],
-        "security": [{ "BearerAuth": [] }],
-        "responses": {
-          "200": {
-            "description": "KYC info (or {status: 'none'} if not submitted)",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/KycInfo" }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "operationId": "submitKyc",
         "summary": "Submit KYC information (Japanese domestic address)",
         "tags": ["KYC"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -438,7 +544,7 @@
         "operationId": "verifyMfa",
         "summary": "Verify MFA and obtain a short-lived operation MFA token (cookie)",
         "tags": ["MFA"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "200": {
             "description": "MFA verified, cookie set",
@@ -479,7 +585,7 @@
         "operationId": "listTokens",
         "summary": "List stablecoins",
         "tags": ["Token"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "200": {
             "description": "List of tokens",
@@ -508,7 +614,7 @@
         "operationId": "getToken",
         "summary": "Get stablecoin details",
         "tags": ["Token"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "parameters": [
           {
             "name": "tokenId",
@@ -542,7 +648,7 @@
         "operationId": "getFiatBalance",
         "summary": "Get user's fiat balance",
         "tags": ["Balance"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "200": {
             "description": "Fiat balance",
@@ -573,7 +679,7 @@
         "operationId": "getXrpBalance",
         "summary": "Get user's XRP token balances (on-chain)",
         "tags": ["Balance"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "200": {
             "description": "XRP balances",
@@ -615,7 +721,7 @@
         "operationId": "getFiatTransactions",
         "summary": "Get user's fiat transaction history",
         "tags": ["Balance"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "200": {
             "description": "Fiat transactions",
@@ -644,7 +750,7 @@
         "operationId": "getXrpTransactions",
         "summary": "Get user's XRP token transaction history",
         "tags": ["Balance"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "200": {
             "description": "XRP transactions",
@@ -673,7 +779,7 @@
         "operationId": "getTrustlines",
         "summary": "Get user's trustline status per token",
         "tags": ["Balance"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "200": {
             "description": "Trustline info",
@@ -702,7 +808,7 @@
         "operationId": "exchangeFiatToToken",
         "summary": "Exchange fiat to XRP token",
         "tags": ["Exchange"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -743,7 +849,7 @@
         "operationId": "exchangeTokenToFiat",
         "summary": "Exchange XRP token to fiat",
         "tags": ["Exchange"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -784,7 +890,7 @@
         "operationId": "getXrpWhitelist",
         "summary": "Get XRP withdrawal address whitelist",
         "tags": ["Whitelist"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "200": {
             "description": "XRP whitelist",
@@ -803,7 +909,7 @@
         "operationId": "addXrpWhitelist",
         "summary": "Add XRP address to whitelist",
         "tags": ["Whitelist"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -844,7 +950,7 @@
         "operationId": "removeXrpWhitelist",
         "summary": "Remove XRP address from whitelist",
         "tags": ["Whitelist"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "parameters": [
           {
             "name": "address",
@@ -883,7 +989,7 @@
         "operationId": "getBankWhitelist",
         "summary": "Get bank withdrawal whitelist",
         "tags": ["Whitelist"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "responses": {
           "200": {
             "description": "Bank whitelist",
@@ -902,7 +1008,7 @@
         "operationId": "addBankWhitelist",
         "summary": "Add bank account to whitelist",
         "tags": ["Whitelist"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -946,7 +1052,7 @@
         "operationId": "removeBankWhitelist",
         "summary": "Remove bank account from whitelist (id = branchCode-accountNumber)",
         "tags": ["Whitelist"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "parameters": [
           {
             "name": "id",
@@ -986,7 +1092,7 @@
         "operationId": "withdrawFiat",
         "summary": "Withdraw fiat to bank account",
         "tags": ["Withdrawal"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -1027,7 +1133,7 @@
         "operationId": "withdrawXrp",
         "summary": "Withdraw XRP token to external address",
         "tags": ["Withdrawal"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -1069,7 +1175,7 @@
         "operationId": "ensureTrustLine",
         "summary": "Ensure TrustLine exists for current user on a token",
         "tags": ["Token"],
-        "security": [{ "BearerAuth": [] }],
+        "security": [{ "CookieAuth": [] }],
         "parameters": [
           {
             "name": "tokenId",

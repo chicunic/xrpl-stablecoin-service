@@ -62,7 +62,9 @@ export async function processXrplTokenTransaction(
   // Find the token config matching this currency + issuer
   const tokenConfigs = getAllTokenConfigs();
   const tokenConfig = tokenConfigs.find(
-    (t) => toXrplCurrency(t.currency) === deliveredAmount.currency && t.issuerAddress === deliveredAmount.issuer,
+    (t) =>
+      (t.currency === deliveredAmount.currency || toXrplCurrency(t.currency) === deliveredAmount.currency) &&
+      t.issuerAddress === deliveredAmount.issuer,
   );
   if (!tokenConfig) {
     return { processed: false, reason: "unknown token" };

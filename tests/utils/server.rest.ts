@@ -71,24 +71,30 @@ export class RestTestHelper {
     return request(this.app);
   }
 
+  private applyHeaders(req: request.Test, headers?: Record<string, string>): request.Test {
+    if (headers) {
+      for (const [key, value] of Object.entries(headers)) req.set(key, value);
+    }
+    return req;
+  }
+
   async post<TResponse = any>(
     url: string,
     data: any,
     headers?: Record<string, string>,
   ): Promise<Response & { body: TResponse }> {
     const req = this.request.post(url).send(data);
-    if (headers) {
-      for (const [key, value] of Object.entries(headers)) req.set(key, value);
-    }
-    return req as Promise<Response & { body: TResponse }>;
+    return this.applyHeaders(req, headers) as Promise<Response & { body: TResponse }>;
   }
 
   async get(url: string, headers?: Record<string, string>) {
     const req = this.request.get(url);
-    if (headers) {
-      for (const [key, value] of Object.entries(headers)) req.set(key, value);
-    }
-    return req;
+    return this.applyHeaders(req, headers);
+  }
+
+  async delete(url: string, headers?: Record<string, string>) {
+    const req = this.request.delete(url);
+    return this.applyHeaders(req, headers);
   }
 
   async patch<TResponse = any>(
@@ -97,9 +103,6 @@ export class RestTestHelper {
     headers?: Record<string, string>,
   ): Promise<Response & { body: TResponse }> {
     const req = this.request.patch(url).send(data);
-    if (headers) {
-      for (const [key, value] of Object.entries(headers)) req.set(key, value);
-    }
-    return req as Promise<Response & { body: TResponse }>;
+    return this.applyHeaders(req, headers) as Promise<Response & { body: TResponse }>;
   }
 }

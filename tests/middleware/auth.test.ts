@@ -23,7 +23,7 @@ describe("requireAuth middleware", () => {
     mockIdentityPlatformAuth.reset();
     mockIdentityPlatformAuth.setup();
 
-    mockReq = { headers: {} };
+    mockReq = { headers: {}, cookies: {} };
     mockRes = {
       status: jest.fn().mockReturnThis() as any,
       json: jest.fn().mockReturnThis() as any,
@@ -35,37 +35,28 @@ describe("requireAuth middleware", () => {
     mockIdentityPlatformAuth.reset();
   });
 
-  it("should return 401 if no Authorization header", async () => {
+  it("should return 401 if no session cookie", async () => {
     await requireAuth(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
-    expect(mockRes.json).toHaveBeenCalledWith({ error: "Missing or invalid Authorization header" });
+    expect(mockRes.json).toHaveBeenCalledWith({ error: "Missing session cookie" });
     expect(mockNext).not.toHaveBeenCalled();
   });
 
-  it("should return 401 if Authorization header is not Bearer", async () => {
-    mockReq.headers = { authorization: "Basic token123" };
+  it("should return 401 if session cookie is invalid", async () => {
+    (mockReq as any).cookies = { __session: "invalid-session" };
+    mockIdentityPlatformAuth.verifySessionCookie.mockRejectedValue(new Error("Error expected in test: invalid"));
 
     await requireAuth(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(401);
-    expect(mockNext).not.toHaveBeenCalled();
-  });
-
-  it("should return 401 if token is invalid", async () => {
-    mockReq.headers = { authorization: "Bearer invalid-token" };
-    mockIdentityPlatformAuth.verifyIdToken.mockRejectedValue(new Error("Error expected in test: invalid"));
-
-    await requireAuth(mockReq as Request, mockRes as Response, mockNext);
-
-    expect(mockRes.status).toHaveBeenCalledWith(401);
-    expect(mockRes.json).toHaveBeenCalledWith({ error: "Invalid or expired token" });
+    expect(mockRes.json).toHaveBeenCalledWith({ error: "Invalid or expired session" });
     expect(mockNext).not.toHaveBeenCalled();
   });
 
   it("should return 401 if email is not verified", async () => {
-    mockReq.headers = { authorization: "Bearer valid-token" };
-    mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue({
+    (mockReq as any).cookies = { __session: "valid-session" };
+    mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue({
       uid: "google-uid-123456",
       email: "test@example.com",
       email_verified: false,
@@ -77,8 +68,8 @@ describe("requireAuth middleware", () => {
     expect(mockNext).not.toHaveBeenCalled();
   });
 
-  it("should call next and set user on valid token with MFA and KYC", async () => {
-    mockReq.headers = { authorization: "Bearer valid-token" };
+  it("should call next and set user on valid session with MFA and KYC", async () => {
+    (mockReq as any).cookies = { __session: "valid-session" };
 
     await requireAuth(mockReq as Request, mockRes as Response, mockNext);
 
@@ -92,8 +83,8 @@ describe("requireAuth middleware", () => {
   });
 
   it("should set mfaVerified to false and kycStatus to none when not in token", async () => {
-    mockReq.headers = { authorization: "Bearer valid-token" };
-    mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue({
+    (mockReq as any).cookies = { __session: "valid-session" };
+    mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue({
       uid: "google-uid-123456",
       email: "test@example.com",
       name: "Test User",
@@ -110,9 +101,9 @@ describe("requireAuth middleware", () => {
   });
 
   it("should set authTime from decoded token", async () => {
-    mockReq.headers = { authorization: "Bearer valid-token" };
+    (mockReq as any).cookies = { __session: "valid-session" };
     const authTime = Math.floor(Date.now() / 1000);
-    mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue({
+    mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue({
       uid: "google-uid-123456",
       email: "test@example.com",
       name: "Test User",

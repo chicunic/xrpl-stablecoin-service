@@ -13,12 +13,8 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export function getTenantAuth() {
-  const tenantId = process.env.IDENTITY_PLATFORM_TENANT_ID;
-  if (!tenantId) {
-    throw new Error("IDENTITY_PLATFORM_TENANT_ID is not configured");
-  }
-  return getAuth().tenantManager().authForTenant(tenantId);
+export function getProjectAuth() {
+  return getAuth();
 }
 
 export function requireKyc(req: Request, res: Response, next: NextFunction): void {
@@ -40,19 +36,17 @@ export function requireMfa(req: Request, res: Response, next: NextFunction): voi
 }
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const authHeader = req.headers.authorization;
+  const sessionCookie = (req.cookies as Record<string, string | undefined>)?.__session;
 
-  if (!authHeader?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Missing or invalid Authorization header" });
+  if (!sessionCookie) {
+    res.status(401).json({ error: "Missing session cookie" });
     return;
   }
 
-  const idToken = authHeader.slice(7);
-
   try {
-    const decoded = await getTenantAuth().verifyIdToken(idToken);
+    const decoded = await getProjectAuth().verifySessionCookie(sessionCookie, true);
     if (!decoded.email || !decoded.email_verified) {
-      res.status(401).json({ error: "Invalid or expired token" });
+      res.status(401).json({ error: "Invalid or expired session" });
       return;
     }
     (req as AuthenticatedRequest).user = {
@@ -65,7 +59,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     };
     next();
   } catch {
-    res.status(401).json({ error: "Invalid or expired token" });
+    res.status(401).json({ error: "Invalid or expired session" });
   }
 }
 
