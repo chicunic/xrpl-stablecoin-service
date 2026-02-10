@@ -6,7 +6,7 @@ import { allocateXrpAddressIndex, deriveWallet } from "@token/services/wallet.se
 import type { BankAccount, User, Wallet } from "@token/types/user.type.js";
 import { FieldValue } from "firebase-admin/firestore";
 
-const USERS_COLLECTION = "users";
+const USERS_COLLECTION = "token_users";
 
 interface BankVirtualAccountResponse {
   bankCode: string;
@@ -49,6 +49,7 @@ export async function getOrCreateUser(uid: string, email: string, name: string):
     email,
     name,
     fiatBalance: 0,
+    kycStatus: "none" as const,
     createdAt: FieldValue.serverTimestamp(),
   };
 

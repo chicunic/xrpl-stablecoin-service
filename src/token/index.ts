@@ -5,10 +5,13 @@ import authRoutes from "@token/routes/auth.route.js";
 import balanceRoutes from "@token/routes/balance.route.js";
 import eventarcRoutes from "@token/routes/eventarc.route.js";
 import exchangeRoutes from "@token/routes/exchange.route.js";
+import kycRoutes from "@token/routes/kyc.route.js";
+import mfaRoutes from "@token/routes/mfa.route.js";
 import pubsubRoutes from "@token/routes/pubsub.route.js";
 import tokenRoutes from "@token/routes/token.route.js";
 import whitelistRoutes from "@token/routes/whitelist.route.js";
 import withdrawalRoutes from "@token/routes/withdrawal.route.js";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import dotenv from "dotenv";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
@@ -29,6 +32,7 @@ const port = process.env.PORT ?? 8080;
 app.set("json replacer", firestoreTimestampReplacer);
 app.use(helmet());
 app.use(cors());
+app.use(cookieParser());
 app.use(express.json());
 
 if (process.env.NODE_ENV === "development") {
@@ -49,6 +53,8 @@ app.get("/health", (_req: Request, res: Response) => {
 });
 
 app.use("/api/v1", authRoutes);
+app.use("/api/v1", kycRoutes);
+app.use("/api/v1", mfaRoutes);
 app.use("/api/v1", tokenRoutes);
 app.use("/api/v1", pubsubRoutes);
 app.use("/api/v1", eventarcRoutes);

@@ -1,6 +1,6 @@
 import type express from "express";
 import { restAssert } from "./utils/helpers";
-import { mockFirestoreService, mockGoogleAuth } from "./utils/mock.index";
+import { mockFirestoreService, mockIdentityPlatformAuth } from "./utils/mock.index";
 import { createCompleteTestApp, RestTestHelper } from "./utils/server.rest";
 
 // Mock bank config to avoid real Secret Manager calls
@@ -21,8 +21,8 @@ describe("Health Check - REST API", () => {
   beforeEach(() => {
     mockFirestoreService.reset();
     mockFirestoreService.setup();
-    mockGoogleAuth.reset();
-    mockGoogleAuth.setup();
+    mockIdentityPlatformAuth.reset();
+    mockIdentityPlatformAuth.setup();
   });
 
   describe("GET /health", () => {

@@ -7,7 +7,7 @@ import {
   TEST_USER_UID,
 } from "../utils/data";
 import { restAssert } from "../utils/helpers";
-import { mockFirestoreService, mockGoogleAuth } from "../utils/mock.index";
+import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.index";
 import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
 
 // Mock wallet.service to avoid real Secret Manager calls
@@ -59,8 +59,8 @@ describe("Auth Routes - REST API Integration", () => {
   beforeEach(() => {
     mockFirestoreService.reset();
     mockFirestoreService.setup();
-    mockGoogleAuth.reset();
-    mockGoogleAuth.setup();
+    mockIdentityPlatformAuth.reset();
+    mockIdentityPlatformAuth.setup();
   });
 
   describe("GET /api/v1/users/me", () => {
@@ -71,7 +71,7 @@ describe("Auth Routes - REST API Integration", () => {
     });
 
     it("should return 401 with invalid token", async () => {
-      mockGoogleAuth.verifyIdToken.mockRejectedValue(new Error("Error expected in test: invalid token"));
+      mockIdentityPlatformAuth.verifyIdToken.mockRejectedValue(new Error("Error expected in test: invalid token"));
 
       const response = await helper.get("/api/v1/users/me", {
         Authorization: "Bearer invalid-token",

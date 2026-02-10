@@ -1,6 +1,11 @@
 import type express from "express";
 import { restAssert } from "../utils/helpers";
-import { enableIdempotencyMock, mockFirestoreService, mockGoogleAuth, mockIdempotency } from "../utils/mock.index";
+import {
+  enableIdempotencyMock,
+  mockFirestoreService,
+  mockIdempotency,
+  mockIdentityPlatformAuth,
+} from "../utils/mock.index";
 
 // Mock idempotency before route imports
 enableIdempotencyMock();
@@ -65,8 +70,8 @@ describe("Pub/Sub Routes - REST API Integration", () => {
   beforeEach(() => {
     mockFirestoreService.reset();
     mockFirestoreService.setup();
-    mockGoogleAuth.reset();
-    mockGoogleAuth.setup();
+    mockIdentityPlatformAuth.reset();
+    mockIdentityPlatformAuth.setup();
     mockIdempotency.reset();
     mockIdempotency.setup();
   });

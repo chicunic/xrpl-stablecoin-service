@@ -1,4 +1,4 @@
-import { mockGoogleAuth } from "./mock.auth";
+import { mockIdentityPlatformAuth } from "./mock.auth";
 import { mockFirestoreService } from "./mock.firestore";
 import { enableIdempotencyMock, mockIdempotency } from "./mock.idempotency";
 import { enablePubSubServiceMock, mockPubSubService } from "./mock.pubsub";
@@ -18,7 +18,7 @@ import {
 
 export {
   mockFirestoreService,
-  mockGoogleAuth,
+  mockIdentityPlatformAuth,
   enableBankConfigMock,
   enableXrplServiceMock,
   mockXrplService,

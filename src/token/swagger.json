@@ -63,7 +63,22 @@
           "email": { "type": "string" },
           "name": { "type": "string" },
           "fiatBalance": { "type": "number" },
+          "kycStatus": { "type": "string", "enum": ["none", "approved"] },
           "createdAt": { "type": "string" }
+        }
+      },
+      "KycInfo": {
+        "type": "object",
+        "properties": {
+          "fullName": { "type": "string" },
+          "phoneNumber": { "type": "string" },
+          "postalCode": { "type": "string" },
+          "prefecture": { "type": "string" },
+          "city": { "type": "string" },
+          "town": { "type": "string" },
+          "address": { "type": "string" },
+          "status": { "type": "string", "enum": ["none", "approved"] },
+          "submittedAt": { "type": "string" }
         }
       },
       "Token": {
@@ -285,6 +300,141 @@
           },
           "409": {
             "description": "Virtual account already set up",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/kyc": {
+      "get": {
+        "operationId": "getKyc",
+        "summary": "Get current user's KYC info",
+        "tags": ["KYC"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "KYC info (or {status: 'none'} if not submitted)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/KycInfo" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "submitKyc",
+        "summary": "Submit KYC information (Japanese domestic address)",
+        "tags": ["KYC"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["fullName", "phoneNumber", "postalCode", "prefecture", "city", "town", "address"],
+                "properties": {
+                  "fullName": { "type": "string", "minLength": 1, "description": "Full name" },
+                  "phoneNumber": {
+                    "type": "string",
+                    "pattern": "^0\\d{9,10}$",
+                    "description": "Japanese phone number (e.g. 09012345678)"
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "pattern": "^\\d{7}$",
+                    "description": "Japanese postal code, 7 digits (e.g. 1000001)"
+                  },
+                  "prefecture": { "type": "string", "minLength": 1, "description": "都道府県 (zipcloud address1)" },
+                  "city": { "type": "string", "minLength": 1, "description": "市区町村 (zipcloud address2)" },
+                  "town": { "type": "string", "description": "町域 (zipcloud address3, can be empty)" },
+                  "address": { "type": "string", "minLength": 1, "description": "番地・建物名等 (user input)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "KYC submitted and approved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/KycInfo" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "409": {
+            "description": "KYC already approved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mfa/verify": {
+      "post": {
+        "operationId": "verifyMfa",
+        "summary": "Verify MFA and obtain a short-lived operation MFA token (cookie)",
+        "tags": ["MFA"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "MFA verified, cookie set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status", "expiresIn"],
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "expiresIn": { "type": "integer", "example": 300 }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "403": {
+            "description": "MFA not verified or auth too old",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" }
@@ -531,7 +681,7 @@
                 "type": "object",
                 "required": ["tokenId", "fiatAmount"],
                 "properties": {
-                  "tokenId": { "type": "string" },
+                  "tokenId": { "type": "string", "minLength": 1 },
                   "fiatAmount": { "type": "number", "minimum": 1 }
                 }
               }
@@ -572,7 +722,7 @@
                 "type": "object",
                 "required": ["tokenId", "tokenAmount"],
                 "properties": {
-                  "tokenId": { "type": "string" },
+                  "tokenId": { "type": "string", "minLength": 1 },
                   "tokenAmount": { "type": "number", "minimum": 1 }
                 }
               }
@@ -632,8 +782,8 @@
                 "type": "object",
                 "required": ["address", "label"],
                 "properties": {
-                  "address": { "type": "string" },
-                  "label": { "type": "string" }
+                  "address": { "type": "string", "pattern": "^r[1-9A-HJ-NP-Za-km-z]{24,34}$" },
+                  "label": { "type": "string", "minLength": 1 }
                 }
               }
             }
@@ -731,11 +881,11 @@
                 "type": "object",
                 "required": ["bankCode", "branchCode", "accountNumber", "accountHolder", "label"],
                 "properties": {
-                  "bankCode": { "type": "string" },
-                  "branchCode": { "type": "string" },
-                  "accountNumber": { "type": "string" },
-                  "accountHolder": { "type": "string" },
-                  "label": { "type": "string" }
+                  "bankCode": { "type": "string", "pattern": "^\\d{4}$", "description": "4-digit bank code" },
+                  "branchCode": { "type": "string", "pattern": "^\\d{3}$", "description": "3-digit branch code" },
+                  "accountNumber": { "type": "string", "pattern": "^\\d{7}$", "description": "7-digit account number" },
+                  "accountHolder": { "type": "string", "minLength": 1 },
+                  "label": { "type": "string", "minLength": 1 }
                 }
               }
             }
@@ -856,9 +1006,9 @@
                 "type": "object",
                 "required": ["tokenId", "tokenAmount", "destinationAddress"],
                 "properties": {
-                  "tokenId": { "type": "string" },
+                  "tokenId": { "type": "string", "minLength": 1 },
                   "tokenAmount": { "type": "number", "minimum": 1 },
-                  "destinationAddress": { "type": "string" }
+                  "destinationAddress": { "type": "string", "pattern": "^r[1-9A-HJ-NP-Za-km-z]{24,34}$" }
                 }
               }
             }

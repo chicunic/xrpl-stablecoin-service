@@ -10,7 +10,7 @@ const BANK_VIRTUAL_ACCOUNTS_COLLECTION = "bank_virtual_accounts";
 async function allocateVirtualAccountNumber(parentAccountNumber: string): Promise<string> {
   const corporatePrefix = parentAccountNumber.substring(0, 3);
   const db = getFirestore();
-  const counterRef = db.collection("counters").doc(`virtualAccount:${corporatePrefix}`);
+  const counterRef = db.collection("bank_counters").doc(`virtualAccount:${corporatePrefix}`);
 
   const result = await db.runTransaction(async (tx) => {
     const counterDoc = await tx.get(counterRef);

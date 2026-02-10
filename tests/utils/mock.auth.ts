@@ -1,30 +1,44 @@
-import { OAuth2Client } from "google-auth-library";
+const mockVerifyIdToken = jest.fn();
+const mockSetCustomUserClaims = jest.fn();
 
-export const mockGoogleAuth = {
-  verifyIdToken: jest.fn(),
-  spy: null as jest.SpyInstance | null,
-  setup: () => {
-    mockGoogleAuth.verifyIdToken.mockResolvedValue({
-      getPayload: () => ({
-        sub: "google-uid-123456",
-        email: "test@example.com",
-        name: "Test User",
-        email_verified: true,
+process.env.IDENTITY_PLATFORM_TENANT_ID = "test-tenant-id";
+
+jest.mock("firebase-admin/auth", () => ({
+  getAuth: () => ({
+    tenantManager: () => ({
+      authForTenant: () => ({
+        verifyIdToken: mockVerifyIdToken,
+        setCustomUserClaims: mockSetCustomUserClaims,
       }),
-    });
+    }),
+  }),
+}));
 
-    if (mockGoogleAuth.spy) {
-      mockGoogleAuth.spy.mockRestore();
-    }
-    mockGoogleAuth.spy = jest
-      .spyOn(OAuth2Client.prototype, "verifyIdToken")
-      .mockImplementation(mockGoogleAuth.verifyIdToken);
+export const mockIdentityPlatformAuth = {
+  verifyIdToken: mockVerifyIdToken,
+  setCustomUserClaims: mockSetCustomUserClaims,
+  setupWithoutMfa: () => {
+    mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue({
+      uid: "google-uid-123456",
+      email: "test@example.com",
+      name: "Test User",
+      email_verified: true,
+    });
+    mockIdentityPlatformAuth.setCustomUserClaims.mockResolvedValue(undefined);
+  },
+  setup: () => {
+    mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue({
+      uid: "google-uid-123456",
+      email: "test@example.com",
+      name: "Test User",
+      email_verified: true,
+      firebase: { sign_in_second_factor: "phone" },
+      kycStatus: "approved",
+    });
+    mockIdentityPlatformAuth.setCustomUserClaims.mockResolvedValue(undefined);
   },
   reset: () => {
-    mockGoogleAuth.verifyIdToken.mockReset();
-    if (mockGoogleAuth.spy) {
-      mockGoogleAuth.spy.mockRestore();
-      mockGoogleAuth.spy = null;
-    }
+    mockIdentityPlatformAuth.verifyIdToken.mockReset();
+    mockIdentityPlatformAuth.setCustomUserClaims.mockReset();
   },
 };

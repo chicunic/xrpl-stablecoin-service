@@ -4,7 +4,7 @@ import { NotFoundError, ValidationError } from "@common/utils/error.handler.js";
 import type { FiatTransaction, FiatTransactionType } from "@token/types/fiat-transaction.type.js";
 import { FieldValue } from "firebase-admin/firestore";
 
-const USERS_COLLECTION = "users";
+const USERS_COLLECTION = "token_users";
 
 export async function getFiatBalance(userId: string): Promise<number> {
   const db = getFirestore();

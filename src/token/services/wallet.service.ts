@@ -50,7 +50,7 @@ export async function getWalletForSigning(index: number): Promise<Wallet> {
 
 export async function allocateXrpAddressIndex(): Promise<number> {
   const db = getFirestore();
-  const counterRef = db.collection("counters").doc("bipIndex");
+  const counterRef = db.collection("token_counters").doc("bipIndex");
 
   return db.runTransaction(async (tx) => {
     const counterDoc = await tx.get(counterRef);

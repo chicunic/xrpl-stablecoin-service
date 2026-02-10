@@ -28,10 +28,25 @@ export interface TokenBalance {
   updatedAt: Timestamp;
 }
 
+export type KycStatus = "none" | "approved";
+
+export interface KycInfo {
+  fullName: string;
+  phoneNumber: string;
+  postalCode: string;
+  prefecture: string;
+  city: string;
+  town: string;
+  address: string;
+  status: KycStatus;
+  submittedAt: Timestamp;
+}
+
 export interface User {
   uid: string;
   email: string;
   name: string;
   fiatBalance: number;
+  kycStatus: KycStatus;
   createdAt: Timestamp;
 }

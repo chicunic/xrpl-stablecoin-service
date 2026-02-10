@@ -5,7 +5,7 @@ import type { TokenBalance } from "@token/types/user.type.js";
 import type { XrpTransaction, XrpTransactionType } from "@token/types/xrp-transaction.type.js";
 import { FieldValue } from "firebase-admin/firestore";
 
-const USERS_COLLECTION = "users";
+const USERS_COLLECTION = "token_users";
 
 function tokenBalanceDocId(currency: string, issuer: string): string {
   return `${currency}:${issuer}`;

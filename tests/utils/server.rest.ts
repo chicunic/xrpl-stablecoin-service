@@ -1,10 +1,12 @@
 import path from "node:path";
+import cookieParser from "cookie-parser";
 import express from "express";
 import * as OpenApiValidator from "express-openapi-validator";
 import request, { type Response } from "supertest";
 
 function createTestAppWithValidation(): express.Application {
   const app = express();
+  app.use(cookieParser());
   app.use(express.json());
 
   app.use(
@@ -36,20 +38,26 @@ export async function createCompleteTestApp(): Promise<express.Application> {
   const app = createTestAppWithValidation();
 
   const authRoutes = (await import("../../src/token/routes/auth.route")).default;
+  const kycRoutes = (await import("../../src/token/routes/kyc.route")).default;
+  const mfaRoutes = (await import("../../src/token/routes/mfa.route")).default;
   const tokenRoutes = (await import("../../src/token/routes/token.route")).default;
   const pubsubRoutes = (await import("../../src/token/routes/pubsub.route")).default;
   const eventarcRoutes = (await import("../../src/token/routes/eventarc.route")).default;
   const balanceRoutes = (await import("../../src/token/routes/balance.route")).default;
+  const whitelistRoutes = (await import("../../src/token/routes/whitelist.route")).default;
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
   app.use("/api/v1", authRoutes);
+  app.use("/api/v1", kycRoutes);
+  app.use("/api/v1", mfaRoutes);
   app.use("/api/v1", tokenRoutes);
   app.use("/api/v1", pubsubRoutes);
   app.use("/api/v1", eventarcRoutes);
   app.use("/api/v1", balanceRoutes);
+  app.use("/api/v1", whitelistRoutes);
 
   addErrorHandlingToTestApp(app);
 

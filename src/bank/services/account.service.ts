@@ -10,7 +10,7 @@ const BANK_VIRTUAL_ACCOUNTS_COLLECTION = "bank_virtual_accounts";
 
 async function incrementCounter(counterName: string, maxValue?: number): Promise<number> {
   const db = getFirestore();
-  const counterRef = db.collection("counters").doc(counterName);
+  const counterRef = db.collection("bank_counters").doc(counterName);
 
   return db.runTransaction(async (tx) => {
     const counterDoc = await tx.get(counterRef);

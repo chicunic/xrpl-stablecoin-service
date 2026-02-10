@@ -1,6 +1,6 @@
 import { getFirestore } from "@common/config/firebase.js";
 
-const PROCESSED_MESSAGES_COLLECTION = "processed_messages";
+const PROCESSED_MESSAGES_COLLECTION = "token_processed_messages";
 
 export async function checkAndMarkProcessed(messageId: string, type: string): Promise<boolean> {
   const db = getFirestore();

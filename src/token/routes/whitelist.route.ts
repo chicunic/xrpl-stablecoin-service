@@ -1,5 +1,11 @@
 import { handleRouteError } from "@common/utils/error.handler.js";
-import { type AuthenticatedRequest, requireAuth } from "@token/middleware/auth.js";
+import {
+  type AuthenticatedRequest,
+  requireAuth,
+  requireKyc,
+  requireMfa,
+  requireOperationMfa,
+} from "@token/middleware/auth.js";
 import {
   addBankWhitelist,
   addXrpWhitelist,
@@ -24,7 +30,7 @@ router.get("/whitelist/xrp", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.post("/whitelist/xrp", requireAuth, async (req, res: Response) => {
+router.post("/whitelist/xrp", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const { address, label } = req.body as { address: string; label: string };
@@ -36,15 +42,22 @@ router.post("/whitelist/xrp", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.delete("/whitelist/xrp/:address", requireAuth, async (req, res: Response) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    await removeXrpWhitelist(uid, req.params.address as string);
-    res.json({ status: "ok" });
-  } catch (error) {
-    handleRouteError(error, res, "DELETE /whitelist/xrp/:address");
-  }
-});
+router.delete(
+  "/whitelist/xrp/:address",
+  requireAuth,
+  requireKyc,
+  requireMfa,
+  requireOperationMfa,
+  async (req, res: Response) => {
+    try {
+      const { uid } = (req as AuthenticatedRequest).user;
+      await removeXrpWhitelist(uid, req.params.address as string);
+      res.json({ status: "ok" });
+    } catch (error) {
+      handleRouteError(error, res, "DELETE /whitelist/xrp/:address");
+    }
+  },
+);
 
 router.get("/whitelist/bank", requireAuth, async (req, res: Response) => {
   try {
@@ -56,7 +69,7 @@ router.get("/whitelist/bank", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.post("/whitelist/bank", requireAuth, async (req, res: Response) => {
+router.post("/whitelist/bank", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const bankAccount = req.body as Omit<BankAccount, "createdAt">;
@@ -68,21 +81,28 @@ router.post("/whitelist/bank", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.delete("/whitelist/bank/:id", requireAuth, async (req, res: Response) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const id = req.params.id as string;
-    const [branchCode, accountNumber] = id.split("-");
-    if (!branchCode || !accountNumber) {
-      res.status(400).json({ error: "Invalid: id must be in format branchCode-accountNumber" });
-      return;
-    }
+router.delete(
+  "/whitelist/bank/:id",
+  requireAuth,
+  requireKyc,
+  requireMfa,
+  requireOperationMfa,
+  async (req, res: Response) => {
+    try {
+      const { uid } = (req as AuthenticatedRequest).user;
+      const id = req.params.id as string;
+      const [branchCode, accountNumber] = id.split("-");
+      if (!branchCode || !accountNumber) {
+        res.status(400).json({ error: "Invalid: id must be in format branchCode-accountNumber" });
+        return;
+      }
 
-    await removeBankWhitelist(uid, branchCode, accountNumber);
-    res.json({ status: "ok" });
-  } catch (error) {
-    handleRouteError(error, res, "DELETE /whitelist/bank/:id");
-  }
-});
+      await removeBankWhitelist(uid, branchCode, accountNumber);
+      res.json({ status: "ok" });
+    } catch (error) {
+      handleRouteError(error, res, "DELETE /whitelist/bank/:id");
+    }
+  },
+);
 
 export default router;

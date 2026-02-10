@@ -11,7 +11,7 @@ import type { ExchangeOrder } from "@token/types/exchange-order.type.js";
 import type { Wallet } from "@token/types/user.type.js";
 import { FieldValue } from "firebase-admin/firestore";
 
-const ORDERS_COLLECTION = "exchangeOrders";
+const ORDERS_COLLECTION = "token_exchange_orders";
 
 async function createOrder(
   userId: string,

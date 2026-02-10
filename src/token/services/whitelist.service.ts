@@ -4,7 +4,7 @@ import type { BankAccount, WhitelistAddress } from "@token/types/user.type.js";
 import type { DocumentReference, DocumentSnapshot } from "firebase-admin/firestore";
 import { Timestamp } from "firebase-admin/firestore";
 
-const USERS_COLLECTION = "users";
+const USERS_COLLECTION = "token_users";
 
 function whitelistDocRef(userId: string, subcollection: string): DocumentReference {
   return getFirestore().collection(USERS_COLLECTION).doc(userId).collection(subcollection).doc("default");

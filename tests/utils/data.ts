@@ -10,7 +10,20 @@ export const MOCK_USER_DOC_BASE = {
   email: TEST_USER_EMAIL,
   name: TEST_USER_NAME,
   fiatBalance: 0,
+  kycStatus: "none",
   createdAt: "mock-timestamp",
+};
+
+export const MOCK_KYC_DOC = {
+  fullName: "山田 太郎",
+  phoneNumber: "09012345678",
+  postalCode: "1000001",
+  prefecture: "東京都",
+  city: "千代田区",
+  town: "丸の内",
+  address: "1-1-1",
+  status: "approved",
+  submittedAt: "mock-timestamp",
 };
 
 export const MOCK_WALLET_DOC = {

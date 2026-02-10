@@ -1,5 +1,11 @@
 import { handleRouteError } from "@common/utils/error.handler.js";
-import { type AuthenticatedRequest, requireAuth } from "@token/middleware/auth.js";
+import {
+  type AuthenticatedRequest,
+  requireAuth,
+  requireKyc,
+  requireMfa,
+  requireOperationMfa,
+} from "@token/middleware/auth.js";
 import { withdrawFiat, withdrawXrp } from "@token/services/withdrawal.service.js";
 import type { BankAccount } from "@token/types/user.type.js";
 import type { Response, Router as RouterType } from "express";
@@ -7,7 +13,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.post("/withdraw/fiat", requireAuth, async (req, res: Response) => {
+router.post("/withdraw/fiat", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const { amount, bankAccount } = req.body as {
@@ -22,7 +28,7 @@ router.post("/withdraw/fiat", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.post("/withdraw/xrp", requireAuth, async (req, res: Response) => {
+router.post("/withdraw/xrp", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const { tokenId, tokenAmount, destinationAddress } = req.body as {
