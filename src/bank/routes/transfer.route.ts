@@ -10,11 +10,12 @@ const router: RouterType = Router();
 router.post("/transfers", requireBankAuth, async (req, res: Response) => {
   try {
     const { accountId, tokenType } = (req as BankAuthenticatedRequest).bankUser;
-    const { toBranchCode, toAccountNumber, amount, pin } = req.body as {
+    const { toBranchCode, toAccountNumber, amount, pin, idempotencyKey } = req.body as {
       toBranchCode: string;
       toAccountNumber: string;
       amount: number;
       pin?: string;
+      idempotencyKey?: string;
     };
 
     if (tokenType === "api") {
@@ -26,7 +27,7 @@ router.post("/transfers", requireBankAuth, async (req, res: Response) => {
       await verifyPin(accountId, pin);
     }
 
-    const result = await transfer(accountId, toBranchCode, toAccountNumber, amount);
+    const result = await transfer(accountId, toBranchCode, toAccountNumber, amount, idempotencyKey);
 
     res.json(result);
   } catch (error) {

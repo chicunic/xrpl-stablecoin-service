@@ -1,4 +1,4 @@
-import { convertStringToHex } from "xrpl";
+import { convertHexToString, convertStringToHex } from "xrpl";
 
 export interface TokenConfig {
   tokenId: string;
@@ -50,4 +50,10 @@ export function toXrplCurrency(code: string): string {
   if (code.length === 3) return code;
   if (code.length > 3) return convertStringToHex(code).padEnd(40, "0");
   throw new Error(`Invalid currency code: "${code}" (must be >= 3 characters)`);
+}
+
+export function fromXrplCurrency(hex: string): string {
+  if (hex.length === 3) return hex;
+  if (hex.length === 40) return convertHexToString(hex).replace(/\0/g, "");
+  return hex;
 }

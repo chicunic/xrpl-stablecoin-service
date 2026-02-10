@@ -1,4 +1,3 @@
-import { checkAndMarkProcessed } from "@common/utils/idempotency.js";
 import { parsePubSubMessage } from "@common/utils/pubsub.helper.js";
 import { processBankDeposit } from "@token/services/deposit.service.js";
 import type { Request, Response, Router as RouterType } from "express";
@@ -25,13 +24,7 @@ router.post("/pubsub/bank/deposit", async (req: Request, res: Response) => {
       return;
     }
 
-    const alreadyProcessed = await checkAndMarkProcessed(messageId, "bank-deposit");
-    if (alreadyProcessed) {
-      res.status(200).json({ status: "skipped", reason: "duplicate" });
-      return;
-    }
-
-    await processBankDeposit(transactionId, amount, virtualAccountNumber);
+    await processBankDeposit(messageId, transactionId, amount, virtualAccountNumber);
     res.status(200).json({ status: "ok" });
   } catch (error) {
     if ((error as { statusCode?: number }).statusCode === 400) {

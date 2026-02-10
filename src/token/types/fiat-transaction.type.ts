@@ -1,6 +1,6 @@
 import type { Timestamp } from "firebase-admin/firestore";
 
-export type FiatTransactionType = "deposit" | "withdrawal" | "exchange_in" | "exchange_out";
+export type FiatTransactionType = "deposit" | "withdrawal" | "exchange_in" | "exchange_out" | "refund";
 
 export interface FiatTransaction {
   transactionId: string;

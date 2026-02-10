@@ -1,4 +1,3 @@
-import { checkAndMarkProcessed } from "@common/utils/idempotency.js";
 import { processXrplTokenTransaction } from "@token/services/deposit.service.js";
 import type { Request, Response, Router as RouterType } from "express";
 import { Router } from "express";
@@ -28,13 +27,6 @@ router.post("/eventarc/xrpl/deposit", async (req: Request, res: Response) => {
     if (!txHash) {
       console.error("Invalid Eventarc event: cannot extract txHash from", documentName);
       res.status(200).json({ status: "skipped", reason: "invalid document name" });
-      return;
-    }
-
-    // Idempotency check
-    const alreadyProcessed = await checkAndMarkProcessed(txHash, "xrpl-deposit");
-    if (alreadyProcessed) {
-      res.status(200).json({ status: "skipped", reason: "duplicate" });
       return;
     }
 

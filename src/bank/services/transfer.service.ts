@@ -78,8 +78,20 @@ export async function transfer(
   toBranchCode: string,
   toAccountNumber: string,
   amount: number,
+  idempotencyKey?: string,
 ): Promise<{ balance: number; transactionId: string }> {
   validatePositiveAmount(amount);
+
+  // Idempotency check: return cached result if already processed
+  if (idempotencyKey) {
+    const db = getFirestore();
+    const idempotencyRef = db.collection("bank_processed_transfers").doc(idempotencyKey);
+    const existing = await idempotencyRef.get();
+    if (existing.exists) {
+      const data = existing.data()!;
+      return { balance: data.balance as number, transactionId: data.transactionId as string };
+    }
+  }
 
   let toAccount = await getAccountByBranchAndNumber(toBranchCode, toAccountNumber);
   let virtualAccountNumber: string | undefined;
@@ -192,6 +204,18 @@ export async function transfer(
 
     return { balance: senderNewBalance, transactionId: senderTxId };
   });
+
+  // Record idempotency key after successful transaction
+  if (idempotencyKey) {
+    const db = getFirestore();
+    await db.collection("bank_processed_transfers").doc(idempotencyKey).set({
+      transactionId: result.transactionId,
+      balance: result.balance,
+      fromAccountId,
+      amount,
+      processedAt: FieldValue.serverTimestamp(),
+    });
+  }
 
   if (toAccount.pubsubEnabled) {
     const messageData: Record<string, unknown> = {

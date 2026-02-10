@@ -1,8 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { NotFoundError, ValidationError } from "@common/utils/error.handler.js";
 import { getBankAuthToken, getBankServiceUrl } from "@token/config/bank.js";
 import { getTokenConfig } from "@token/config/tokens.js";
 import { getUserWallet } from "@token/services/auth.service.js";
-import { debitFiat } from "@token/services/fiat.service.js";
+import { creditFiat, debitFiat } from "@token/services/fiat.service.js";
 import { recordXrpTransaction } from "@token/services/token-balance.service.js";
 import {
   getBankWhitelist,
@@ -36,8 +37,18 @@ export async function withdrawFiat(
     throw new ValidationError("Invalid: destination bank account is not in whitelist");
   }
 
+  const idempotencyKey = randomUUID();
   await debitFiat(userId, amount, "withdrawal", `Fiat withdrawal to ${bankAccount.accountHolder}`);
-  const txReference = await initiateBankTransfer(bankAccount, amount);
+
+  let txReference: string;
+  try {
+    txReference = await initiateBankTransfer(bankAccount, amount, idempotencyKey);
+  } catch (error) {
+    // Bank transfer failed: refund the deducted balance
+    console.error(`Bank transfer failed for user ${userId}, refunding ${amount}:`, error);
+    await creditFiat(userId, amount, "refund", `Refund: bank transfer failed`);
+    throw error;
+  }
 
   return {
     amount,
@@ -78,12 +89,44 @@ export async function withdrawXrp(
     tokenConfig.issuerAddress,
   );
 
-  await recordXrpTransaction(userId, tokenId, "withdrawal", tokenAmount, `Withdrawal to ${destinationAddress}`);
+  // XRPL transaction is irreversible once submitted.
+  // Record must not be lost even if Firestore write fails.
+  try {
+    await recordXrpTransaction(
+      userId,
+      tokenId,
+      "withdrawal",
+      tokenAmount,
+      `Withdrawal to ${destinationAddress}`,
+      txHash,
+    );
+  } catch (recordError) {
+    console.error(
+      `CRITICAL: XRPL withdrawal succeeded (txHash=${txHash}) but record failed for user ${userId}:`,
+      recordError,
+    );
+    // Retry once
+    try {
+      await recordXrpTransaction(
+        userId,
+        tokenId,
+        "withdrawal",
+        tokenAmount,
+        `Withdrawal to ${destinationAddress}`,
+        txHash,
+      );
+    } catch (retryError) {
+      console.error(
+        `CRITICAL: Retry also failed for txHash=${txHash}, user=${userId}. Manual reconciliation required.`,
+        retryError,
+      );
+    }
+  }
 
   return { tokenId, amount: tokenAmount, destinationAddress, xrplTxHash: txHash };
 }
 
-async function initiateBankTransfer(bankAccount: BankAccount, amount: number): Promise<string> {
+async function initiateBankTransfer(bankAccount: BankAccount, amount: number, idempotencyKey: string): Promise<string> {
   const bankServiceUrl = getBankServiceUrl();
   const bankAuthToken = await getBankAuthToken();
   const url = `${bankServiceUrl}/api/v1/transfers`;
@@ -97,6 +140,7 @@ async function initiateBankTransfer(bankAccount: BankAccount, amount: number): P
       toBranchCode: bankAccount.branchCode,
       toAccountNumber: bankAccount.accountNumber,
       amount,
+      idempotencyKey,
     }),
   });
 

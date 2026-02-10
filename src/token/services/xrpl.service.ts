@@ -1,4 +1,4 @@
-import { toXrplCurrency } from "@token/config/tokens.js";
+import { fromXrplCurrency, toXrplCurrency } from "@token/config/tokens.js";
 import { signWithKms } from "@token/services/signing.service.js";
 import { getWalletForSigning } from "@token/services/wallet.service.js";
 import type { AccountLinesResponse, Payment, SubmitResponse } from "xrpl";
@@ -85,7 +85,7 @@ export async function getBalances(
   });
 
   return response.result.lines.map((line) => ({
-    currency: line.currency,
+    currency: fromXrplCurrency(line.currency),
     value: line.balance,
     issuer: line.account,
   }));
