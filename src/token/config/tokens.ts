@@ -1,3 +1,5 @@
+import { convertStringToHex } from "xrpl";
+
 export interface TokenConfig {
   tokenId: string;
   name: string;
@@ -42,4 +44,10 @@ export function getTokenConfig(tokenId: string): TokenConfig {
 
 export function getAllTokenConfigs(): TokenConfig[] {
   return Object.values(TOKEN_CONFIGS);
+}
+
+export function toXrplCurrency(code: string): string {
+  if (code.length === 3) return code;
+  if (code.length > 3) return convertStringToHex(code).padEnd(40, "0");
+  throw new Error(`Invalid currency code: "${code}" (must be >= 3 characters)`);
 }

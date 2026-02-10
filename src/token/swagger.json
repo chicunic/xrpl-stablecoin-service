@@ -151,21 +151,19 @@
           "tokenId": { "type": "string" },
           "type": { "type": "string", "enum": ["deposit", "withdrawal", "exchange_in", "exchange_out"] },
           "amount": { "type": "number" },
-          "balance": { "type": "number" },
           "description": { "type": "string" },
           "relatedOrderId": { "type": "string" },
           "createdAt": { "type": "string" }
         }
       },
-      "TokenBalanceSummary": {
+      "TrustlineInfo": {
         "type": "object",
         "properties": {
           "tokenId": { "type": "string" },
           "name": { "type": "string" },
           "currency": { "type": "string" },
           "issuerAddress": { "type": "string" },
-          "hasTrustline": { "type": "boolean" },
-          "balance": { "type": "number" }
+          "hasTrustline": { "type": "boolean" }
         }
       },
       "PubSubEnvelope": {
@@ -276,6 +274,38 @@
       }
     },
     "/api/v1/users/me/virtual-account": {
+      "get": {
+        "operationId": "getVirtualAccount",
+        "summary": "Get current user's virtual bank account",
+        "tags": ["Auth"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Virtual account details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VirtualAccount" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Virtual account not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "operationId": "setupVirtualAccount",
         "summary": "Set up virtual bank account for current user",
@@ -638,20 +668,20 @@
         }
       }
     },
-    "/api/v1/balance/tokens": {
+    "/api/v1/balance/trustlines": {
       "get": {
-        "operationId": "getTokenBalances",
-        "summary": "Get user's token balances with trustline status",
+        "operationId": "getTrustlines",
+        "summary": "Get user's trustline status per token",
         "tags": ["Balance"],
         "security": [{ "BearerAuth": [] }],
         "responses": {
           "200": {
-            "description": "Token balances",
+            "description": "Trustline info",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/TokenBalanceSummary" }
+                  "items": { "$ref": "#/components/schemas/TrustlineInfo" }
                 }
               }
             }

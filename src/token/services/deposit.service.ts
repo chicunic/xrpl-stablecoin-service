@@ -1,7 +1,7 @@
-import { getAllTokenConfigs } from "@token/config/tokens.js";
+import { getAllTokenConfigs, toXrplCurrency } from "@token/config/tokens.js";
 import { getUserByVirtualAccountNumber, getUserByWalletAddress } from "@token/services/auth.service.js";
 import { creditFiat } from "@token/services/fiat.service.js";
-import { creditTokenBalance } from "@token/services/token-balance.service.js";
+import { recordXrpTransaction } from "@token/services/token-balance.service.js";
 
 export async function processBankDeposit(
   bankTransactionId: string,
@@ -62,7 +62,7 @@ export async function processXrplTokenTransaction(
   // Find the token config matching this currency + issuer
   const tokenConfigs = getAllTokenConfigs();
   const tokenConfig = tokenConfigs.find(
-    (t) => t.currency === deliveredAmount.currency && t.issuerAddress === deliveredAmount.issuer,
+    (t) => toXrplCurrency(t.currency) === deliveredAmount.currency && t.issuerAddress === deliveredAmount.issuer,
   );
   if (!tokenConfig) {
     return { processed: false, reason: "unknown token" };
@@ -79,13 +79,11 @@ export async function processXrplTokenTransaction(
     return { processed: false, reason: "invalid amount" };
   }
 
-  await creditTokenBalance(
+  await recordXrpTransaction(
     user.uid,
     tokenConfig.tokenId,
-    tokenConfig.currency,
-    tokenConfig.issuerAddress,
-    amount,
     "deposit",
+    amount,
     `Token deposit via XRPL tx ${txHash}`,
     txHash,
   );

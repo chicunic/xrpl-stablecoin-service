@@ -3,7 +3,7 @@ import { getAllTokenConfigs } from "@token/config/tokens.js";
 import { type AuthenticatedRequest, requireAuth } from "@token/middleware/auth.js";
 import { getUserWallet } from "@token/services/auth.service.js";
 import { getFiatBalance, getFiatTransactions } from "@token/services/fiat.service.js";
-import { getTokenBalances, getXrpTransactions } from "@token/services/token-balance.service.js";
+import { getTrustlines, getXrpTransactions } from "@token/services/token-balance.service.js";
 import { getBalances } from "@token/services/xrpl.service.js";
 import type { Response, Router as RouterType } from "express";
 import { Router } from "express";
@@ -57,30 +57,25 @@ router.get("/balance/xrp/transactions", requireAuth, async (req, res: Response) 
   }
 });
 
-router.get("/balance/tokens", requireAuth, async (req, res: Response) => {
+router.get("/balance/trustlines", requireAuth, async (req, res: Response) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
 
     const tokens = getAllTokenConfigs();
-    const userBalances = await getTokenBalances(uid);
-    const balanceMap = new Map(userBalances.map((b) => [`${b.currency}:${b.issuer}`, b.balance]));
+    const userTrustlines = await getTrustlines(uid);
+    const trustlineSet = new Set(userTrustlines.map((t) => `${t.currency}:${t.issuer}`));
 
-    const result = tokens.map((token) => {
-      const key = `${token.currency}:${token.issuerAddress}`;
-      const balance = balanceMap.get(key);
-      return {
-        tokenId: token.tokenId,
-        name: token.name,
-        currency: token.currency,
-        issuerAddress: token.issuerAddress,
-        hasTrustline: balance !== undefined,
-        balance: balance ?? 0,
-      };
-    });
+    const result = tokens.map((token) => ({
+      tokenId: token.tokenId,
+      name: token.name,
+      currency: token.currency,
+      issuerAddress: token.issuerAddress,
+      hasTrustline: trustlineSet.has(`${token.currency}:${token.issuerAddress}`),
+    }));
 
     res.json(result);
   } catch (error) {
-    handleRouteError(error, res, "GET /balance/tokens");
+    handleRouteError(error, res, "GET /balance/trustlines");
   }
 });
 

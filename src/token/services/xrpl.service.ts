@@ -1,3 +1,4 @@
+import { toXrplCurrency } from "@token/config/tokens.js";
 import { signWithKms } from "@token/services/signing.service.js";
 import { getWalletForSigning } from "@token/services/wallet.service.js";
 import type { AccountLinesResponse, Payment, SubmitResponse } from "xrpl";
@@ -54,7 +55,7 @@ export async function sendToken(
     Account: issuerAddress,
     Destination: destination,
     Amount: {
-      currency,
+      currency: toXrplCurrency(currency),
       value: amount,
       issuer: issuerAddress,
     },
@@ -103,7 +104,7 @@ export async function sendTokenFromUser(
     Account: fromAddress,
     Destination: destination,
     Amount: {
-      currency,
+      currency: toXrplCurrency(currency),
       value: amount,
       issuer: issuerAddress,
     },

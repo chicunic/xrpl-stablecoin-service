@@ -21,11 +21,10 @@ export interface WhitelistAddress {
   createdAt: Timestamp;
 }
 
-export interface TokenBalance {
+export interface Trustline {
   currency: string;
   issuer: string;
-  balance: number;
-  updatedAt: Timestamp;
+  createdAt: Timestamp;
 }
 
 export type KycStatus = "none" | "approved";
@@ -49,4 +48,10 @@ export interface User {
   fiatBalance: number;
   kycStatus: KycStatus;
   createdAt: Timestamp;
+}
+
+export interface UserResponse extends User {
+  hasWallet: boolean;
+  hasVirtualAccount: boolean;
+  walletAddress?: string;
 }

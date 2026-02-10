@@ -7,7 +7,6 @@ export interface XrpTransaction {
   tokenId: string;
   type: XrpTransactionType;
   amount: number;
-  balance: number;
   description: string;
   relatedOrderId?: string;
   createdAt: Timestamp;

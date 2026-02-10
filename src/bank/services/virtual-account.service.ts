@@ -42,7 +42,9 @@ export async function createVirtualAccount(parentAccountId: string, label: strin
   const virtualAccount = {
     virtualAccountId,
     accountNumber,
+    bankCode: parentAccount.bankCode,
     branchCode: parentAccount.branchCode,
+    accountHolder: parentAccount.accountHolder,
     parentAccountId,
     parentAccountNumber: parentAccount.accountNumber,
     label,

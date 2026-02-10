@@ -2,7 +2,7 @@ import { handleRouteError } from "@common/utils/error.handler.js";
 import { getAllTokenConfigs, getTokenConfig } from "@token/config/tokens.js";
 import { type AuthenticatedRequest, requireAuth } from "@token/middleware/auth.js";
 import { getUserWallet } from "@token/services/auth.service.js";
-import { createTokenBalanceDoc } from "@token/services/token-balance.service.js";
+import { createTrustlineDoc } from "@token/services/token-balance.service.js";
 import { ensureTrustLine } from "@token/services/trustline.service.js";
 import type { Request, Response, Router as RouterType } from "express";
 import { Router } from "express";
@@ -39,7 +39,7 @@ router.post("/tokens/:tokenId/trustline", requireAuth, async (req: Request, res:
     }
 
     await ensureTrustLine(wallet.bipIndex, wallet.address, config.currency, config.issuerAddress);
-    await createTokenBalanceDoc(uid, config.currency, config.issuerAddress);
+    await createTrustlineDoc(uid, config.currency, config.issuerAddress);
     res.json({ tokenId, currency: config.currency, status: "ok" });
   } catch (error) {
     handleRouteError(error, res, "POST /tokens/:tokenId/trustline");

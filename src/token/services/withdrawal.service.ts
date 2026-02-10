@@ -3,7 +3,7 @@ import { getBankAuthToken, getBankServiceUrl } from "@token/config/bank.js";
 import { getTokenConfig } from "@token/config/tokens.js";
 import { getUserWallet } from "@token/services/auth.service.js";
 import { debitFiat } from "@token/services/fiat.service.js";
-import { debitTokenBalance } from "@token/services/token-balance.service.js";
+import { recordXrpTransaction } from "@token/services/token-balance.service.js";
 import {
   getBankWhitelist,
   getXrpWhitelist,
@@ -78,15 +78,7 @@ export async function withdrawXrp(
     tokenConfig.issuerAddress,
   );
 
-  await debitTokenBalance(
-    userId,
-    tokenId,
-    tokenConfig.currency,
-    tokenConfig.issuerAddress,
-    tokenAmount,
-    "withdrawal",
-    `Withdrawal to ${destinationAddress}`,
-  );
+  await recordXrpTransaction(userId, tokenId, "withdrawal", tokenAmount, `Withdrawal to ${destinationAddress}`);
 
   return { tokenId, amount: tokenAmount, destinationAddress, xrplTxHash: txHash };
 }

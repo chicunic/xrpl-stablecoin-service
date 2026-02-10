@@ -4,7 +4,7 @@ import { NotFoundError } from "@common/utils/error.handler.js";
 import { getTokenConfig, type TokenConfig } from "@token/config/tokens.js";
 import { getUserWallet } from "@token/services/auth.service.js";
 import { creditFiat, debitFiat } from "@token/services/fiat.service.js";
-import { createTokenBalanceDoc, creditTokenBalance, debitTokenBalance } from "@token/services/token-balance.service.js";
+import { createTrustlineDoc, recordXrpTransaction } from "@token/services/token-balance.service.js";
 import { ensureTrustLine } from "@token/services/trustline.service.js";
 import { sendToken, sendTokenFromUser } from "@token/services/xrpl.service.js";
 import type { ExchangeOrder } from "@token/types/exchange-order.type.js";
@@ -100,7 +100,7 @@ export async function exchangeFiatToToken(userId: string, tokenId: string, fiatA
 
   try {
     await ensureTrustLine(wallet.bipIndex, wallet.address, token.currency, token.issuerAddress);
-    await createTokenBalanceDoc(userId, token.currency, token.issuerAddress);
+    await createTrustlineDoc(userId, token.currency, token.issuerAddress);
 
     const txHash = await sendToken(
       wallet.address,
@@ -111,13 +111,11 @@ export async function exchangeFiatToToken(userId: string, tokenId: string, fiatA
       tokenConfig.signingPublicKey,
     );
 
-    await creditTokenBalance(
+    await recordXrpTransaction(
       userId,
       tokenId,
-      token.currency,
-      token.issuerAddress,
-      tokenAmount,
       "exchange_in",
+      tokenAmount,
       `Exchange from JPY to ${token.currency}`,
       orderId,
     );
@@ -172,13 +170,11 @@ export async function exchangeTokenToFiat(
   }
 
   try {
-    await debitTokenBalance(
+    await recordXrpTransaction(
       userId,
       tokenId,
-      token.currency,
-      token.issuerAddress,
-      tokenAmount,
       "exchange_out",
+      tokenAmount,
       `Exchange from ${token.currency} to JPY`,
       orderId,
     );

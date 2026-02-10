@@ -1,3 +1,4 @@
+import { toXrplCurrency } from "@token/config/tokens.js";
 import { getWalletForSigning } from "@token/services/wallet.service.js";
 import { getClient } from "@token/services/xrpl.service.js";
 import type { AccountLinesResponse, TrustSet } from "xrpl";
@@ -13,7 +14,8 @@ export async function hasTrustLine(userAddress: string, currency: string, issuer
     peer: issuerAddress,
   });
 
-  return response.result.lines.some((line) => line.currency === currency);
+  const xrplCurrency = toXrplCurrency(currency);
+  return response.result.lines.some((line) => line.currency === xrplCurrency);
 }
 
 export async function setTrustLine(
@@ -30,7 +32,7 @@ export async function setTrustLine(
     TransactionType: "TrustSet",
     Account: userAddress,
     LimitAmount: {
-      currency,
+      currency: toXrplCurrency(currency),
       issuer: issuerAddress,
       value: limit,
     },

@@ -24,7 +24,7 @@ steps:
       - "--startup-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=10"
       - "--liveness-probe=httpGet.path=/health,httpGet.port=8080,periodSeconds=300"
       - "--ingress=all"
-      - "--no-allow-unauthenticated"
+      - "--allow-unauthenticated"
 
   # 2. Get bank service URL → deploy token service
   - name: "gcr.io/cloud-builders/gcloud"
