@@ -89,7 +89,7 @@ export async function exchangeFiatToToken(userId: string, tokenId: string, fiatA
   const orderId = await createOrder(userId, tokenId, "fiat_to_token", fiatAmount);
 
   try {
-    await debitFiat(userId, fiatAmount, "exchange_out", `Exchange to ${token.currency}`, orderId);
+    await debitFiat(userId, fiatAmount, "exchange_out", `JPY -> ${token.currency}`, orderId);
     await updateOrderStatus(orderId, "fiat_debited");
   } catch (error) {
     await updateOrderStatus(orderId, "failed", {
@@ -116,13 +116,14 @@ export async function exchangeFiatToToken(userId: string, tokenId: string, fiatA
       tokenId,
       "exchange_in",
       tokenAmount,
-      `Exchange from JPY to ${token.currency}`,
+      `JPY -> ${token.currency}`,
+      txHash,
       orderId,
     );
 
     await updateOrderStatus(orderId, "completed", { xrplTxHash: txHash });
   } catch (error) {
-    await creditFiat(userId, fiatAmount, "exchange_in", `Refund: exchange to ${token.currency} failed`, orderId);
+    await creditFiat(userId, fiatAmount, "exchange_in", `JPY -> ${token.currency} 返金`, orderId);
     await updateOrderStatus(orderId, "failed", {
       failureReason: `XRPL mint failed: ${(error as Error).message}`,
     });
@@ -175,11 +176,12 @@ export async function exchangeTokenToFiat(
       tokenId,
       "exchange_out",
       tokenAmount,
-      `Exchange from ${token.currency} to JPY`,
+      `${token.currency} -> JPY`,
+      txHash,
       orderId,
     );
 
-    await creditFiat(userId, fiatAmount, "exchange_in", `Exchange from ${token.currency}`, orderId);
+    await creditFiat(userId, fiatAmount, "exchange_in", `${token.currency} -> JPY`, orderId);
 
     await updateOrderStatus(orderId, "completed");
   } catch (error) {

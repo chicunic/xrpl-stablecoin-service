@@ -33,6 +33,7 @@ export async function recordXrpTransaction(
   type: XrpTransactionType,
   amount: number,
   description: string,
+  txHash: string,
   relatedOrderId?: string,
 ): Promise<void> {
   const db = getFirestore();
@@ -45,6 +46,7 @@ export async function recordXrpTransaction(
     type,
     amount,
     description,
+    txHash,
     ...(relatedOrderId && { relatedOrderId }),
     createdAt: FieldValue.serverTimestamp(),
   });

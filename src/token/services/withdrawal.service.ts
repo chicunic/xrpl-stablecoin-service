@@ -38,7 +38,7 @@ export async function withdrawFiat(
   }
 
   const idempotencyKey = randomUUID();
-  await debitFiat(userId, amount, "withdrawal", `Fiat withdrawal to ${bankAccount.accountHolder}`);
+  await debitFiat(userId, amount, "withdrawal", "JPY 出金");
 
   let txReference: string;
   try {
@@ -46,7 +46,7 @@ export async function withdrawFiat(
   } catch (error) {
     // Bank transfer failed: refund the deducted balance
     console.error(`Bank transfer failed for user ${userId}, refunding ${amount}:`, error);
-    await creditFiat(userId, amount, "refund", `Refund: bank transfer failed`);
+    await creditFiat(userId, amount, "refund", "JPY 出金 返金");
     throw error;
   }
 
@@ -97,7 +97,8 @@ export async function withdrawXrp(
       tokenId,
       "withdrawal",
       tokenAmount,
-      `Withdrawal to ${destinationAddress}`,
+      `${tokenConfig.currency} 出金`,
+      txHash,
       txHash,
     );
   } catch (recordError) {
@@ -107,14 +108,7 @@ export async function withdrawXrp(
     );
     // Retry once
     try {
-      await recordXrpTransaction(
-        userId,
-        tokenId,
-        "withdrawal",
-        tokenAmount,
-        `Withdrawal to ${destinationAddress}`,
-        txHash,
-      );
+      await recordXrpTransaction(userId, tokenId, "withdrawal", tokenAmount, `${tokenConfig.currency} 出金`, txHash);
     } catch (retryError) {
       console.error(
         `CRITICAL: Retry also failed for txHash=${txHash}, user=${userId}. Manual reconciliation required.`,

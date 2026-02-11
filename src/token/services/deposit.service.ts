@@ -47,7 +47,7 @@ export async function processBankDeposit(
       type: "deposit",
       amount,
       balance: newBalance,
-      description: `Bank deposit via virtual account ${virtualAccountNumber}`,
+      description: "JPY 入金",
       relatedOrderId: bankTransactionId,
       createdAt: FieldValue.serverTimestamp(),
     });
@@ -135,8 +135,9 @@ export async function processXrplTokenTransaction(
       tokenId: tokenConfig.tokenId,
       type: "deposit",
       amount,
-      description: `Token deposit via XRPL tx ${txHash}`,
+      description: `${tokenConfig.currency} 入金`,
       relatedOrderId: txHash,
+      txHash,
       createdAt: FieldValue.serverTimestamp(),
     });
 

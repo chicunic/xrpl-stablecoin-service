@@ -9,5 +9,6 @@ export interface XrpTransaction {
   amount: number;
   description: string;
   relatedOrderId?: string;
+  txHash?: string;
   createdAt: Timestamp;
 }

@@ -65,7 +65,8 @@ export const MOCK_XRP_TRANSACTION = {
   type: "deposit" as const,
   amount: 10000,
   balance: 10000,
-  description: "Token deposit via XRPL tx mock-xrpl-hash",
+  description: "JPYN 入金",
   relatedOrderId: "mock-xrpl-hash",
+  txHash: "mock-xrpl-hash",
   createdAt: "mock-timestamp",
 };
