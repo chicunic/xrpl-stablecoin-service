@@ -18,7 +18,8 @@
     "fix": "pnpm run lint:fix",
     "test": "jest --verbose",
     "test:watch": "jest --watch --verbose",
-    "test:coverage": "jest --coverage --verbose"
+    "test:coverage": "jest --coverage --verbose",
+    "test:integration": "XRPL_NETWORK=devnet SIGNING_PROVIDER=sm jest --config jest.integration.config.ts --verbose --runInBand"
   },
   "engines": {
     "node": ">=24"

@@ -39,6 +39,9 @@ export interface KycInfo {
   address: string;
   status: KycStatus;
   submittedAt: Timestamp;
+  credentialTxHash?: string;
+  credentialAcceptTxHash?: string;
+  credentialStatus?: "issued" | "accepted" | "failed";
 }
 
 export interface User {

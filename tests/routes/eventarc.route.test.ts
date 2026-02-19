@@ -1,9 +1,6 @@
 import type express from "express";
 import { restAssert } from "../utils/helpers";
-import {
-  mockFirestoreService,
-  mockIdentityPlatformAuth,
-} from "../utils/mock.index";
+import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.index";
 
 // Mock bank config to avoid real Secret Manager calls
 jest.mock("../../src/token/config/bank", () => ({

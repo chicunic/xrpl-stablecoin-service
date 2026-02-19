@@ -1,6 +1,13 @@
 import { getFirestore } from "@common/config/firebase.js";
 import { ConflictError, NotFoundError, ValidationError } from "@common/utils/error.handler.js";
+import { getTokenConfig } from "@token/config/tokens.js";
 import { getProjectAuth } from "@token/middleware/auth.js";
+import { getUserWallet } from "@token/services/auth.service.js";
+import {
+  acceptCredential,
+  CREDENTIAL_TYPE_KYC_JAPAN_HEX,
+  issueCredential,
+} from "@token/services/credential.service.js";
 import type { KycInfo } from "@token/types/user.type.js";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -78,6 +85,29 @@ export async function submitKyc(uid: string, input: SubmitKycInput): Promise<Kyc
   await kycRef.set(kycData);
   await userRef.update({ kycStatus: "approved" });
   await getProjectAuth().setCustomUserClaims(uid, { kycStatus: "approved" });
+
+  // Issue on-chain credential after KYC approval
+  try {
+    const wallet = await getUserWallet(uid);
+    if (wallet) {
+      const { issuerAddress } = getTokenConfig("JPYN");
+      const credentialTxHash = await issueCredential(wallet.address, CREDENTIAL_TYPE_KYC_JAPAN_HEX);
+      const credentialAcceptTxHash = await acceptCredential(
+        wallet.bipIndex,
+        wallet.address,
+        issuerAddress,
+        CREDENTIAL_TYPE_KYC_JAPAN_HEX,
+      );
+      await kycRef.update({
+        credentialTxHash,
+        credentialAcceptTxHash,
+        credentialStatus: "accepted",
+      });
+    }
+  } catch (error) {
+    console.error("Failed to issue on-chain credential:", error);
+    await kycRef.update({ credentialStatus: "failed" }).catch(() => {});
+  }
 
   const created = await kycRef.get();
   return created.data() as KycInfo;

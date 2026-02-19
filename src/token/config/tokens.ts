@@ -1,5 +1,10 @@
 import { convertHexToString, convertStringToHex } from "xrpl";
 
+export interface AcceptedCredential {
+  issuer: string;
+  credentialType: string; // hex
+}
+
 export interface TokenConfig {
   tokenId: string;
   name: string;
@@ -8,6 +13,8 @@ export interface TokenConfig {
   issuerAddress: string;
   kmsKeyPath: string;
   signingPublicKey: string;
+  permissionedDomainId?: string;
+  acceptedCredentials: AcceptedCredential[];
 }
 
 const TOKEN_CONFIGS: Record<string, TokenConfig> = {
@@ -19,6 +26,13 @@ const TOKEN_CONFIGS: Record<string, TokenConfig> = {
     issuerAddress: "rpPqDaWncvBULqLLZULS4svoi1fxW4sPjp",
     kmsKeyPath: process.env.JPYN_KMS_KEY_PATH ?? "",
     signingPublicKey: "ED9CBF796AF94F722DE72A56FFD44E2239E92151A593BE69E51FDF86DDEA04EEE5",
+    permissionedDomainId: process.env.JPYN_DOMAIN_ID ?? "",
+    acceptedCredentials: [
+      {
+        issuer: "rpPqDaWncvBULqLLZULS4svoi1fxW4sPjp",
+        credentialType: convertStringToHex("KYC_JAPAN"),
+      },
+    ],
   },
 };
 

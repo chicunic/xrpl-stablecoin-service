@@ -23,6 +23,13 @@ jest.mock("../../src/token/services/trustline.service", () => ({
   ensureTrustLine: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Mock credential.service to avoid real XRPL credential calls
+jest.mock("../../src/token/services/credential.service", () => ({
+  issueCredential: jest.fn().mockResolvedValue("mock-credential-tx-hash"),
+  acceptCredential: jest.fn().mockResolvedValue("mock-credential-accept-tx-hash"),
+  CREDENTIAL_TYPE_KYC_JAPAN_HEX: "4B59435F4A4150414E",
+}));
+
 // Mock bank config to avoid real Secret Manager calls
 jest.mock("../../src/token/config/bank", () => ({
   getBankServiceUrl: jest.fn().mockReturnValue("http://mock-bank-service"),
@@ -64,11 +71,16 @@ describe("KYC Routes - REST API Integration", () => {
 
     it("should submit KYC and set status to approved", async () => {
       // 1st get: userRef.get() → user exists with kycStatus none
-      // 2nd get: kycRef.get() after set → kyc data
+      // 2nd get: getUserWallet() → wallet doc
+      // 3rd get: kycRef.get() after credential flow → kyc data
       mockFirestoreService.get
         .mockResolvedValueOnce({
           exists: true,
           data: () => MOCK_USER_DOC_BASE,
+        })
+        .mockResolvedValueOnce({
+          exists: true,
+          data: () => ({ address: "rMockAddress123", bipIndex: 1, createdAt: "mock-timestamp" }),
         })
         .mockResolvedValueOnce({
           exists: true,

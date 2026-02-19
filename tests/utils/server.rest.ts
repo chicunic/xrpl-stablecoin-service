@@ -43,6 +43,8 @@ export async function createCompleteTestApp(): Promise<express.Application> {
   const eventarcRoutes = (await import("../../src/token/routes/eventarc.route")).default;
   const balanceRoutes = (await import("../../src/token/routes/balance.route")).default;
   const whitelistRoutes = (await import("../../src/token/routes/whitelist.route")).default;
+  const credentialRoutes = (await import("../../src/token/routes/credential.route")).default;
+  const dexRoutes = (await import("../../src/token/routes/dex.route")).default;
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
@@ -56,6 +58,8 @@ export async function createCompleteTestApp(): Promise<express.Application> {
   app.use("/api/v1", eventarcRoutes);
   app.use("/api/v1", balanceRoutes);
   app.use("/api/v1", whitelistRoutes);
+  app.use("/api/v1", credentialRoutes);
+  app.use("/api/v1", dexRoutes);
 
   addErrorHandlingToTestApp(app);
 

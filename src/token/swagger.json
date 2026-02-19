@@ -1257,6 +1257,213 @@
         }
       }
     },
+    "/api/v1/users/me/credential": {
+      "get": {
+        "operationId": "getCredentialStatus",
+        "summary": "Get on-chain credential status for current user",
+        "tags": ["Credential"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Credential status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "exists": { "type": "boolean" },
+                    "accepted": { "type": "boolean" },
+                    "expiration": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "403": {
+            "description": "KYC required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "404": {
+            "description": "Wallet not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/credential/retry": {
+      "post": {
+        "operationId": "retryCredential",
+        "summary": "Retry failed credential issuance",
+        "tags": ["Credential"],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Credential issued and accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "credentialTxHash": { "type": "string" },
+                    "credentialAcceptTxHash": { "type": "string" },
+                    "credentialStatus": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "403": {
+            "description": "KYC required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "404": {
+            "description": "Wallet not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/dex/offers": {
+      "post": {
+        "operationId": "createDexOffer",
+        "summary": "Create a Permissioned DEX offer",
+        "tags": ["DEX"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tokenId", "side", "amount", "price"],
+                "properties": {
+                  "tokenId": { "type": "string", "minLength": 1 },
+                  "side": { "type": "string", "enum": ["buy", "sell"] },
+                  "amount": { "type": "string", "minLength": 1 },
+                  "price": { "type": "string", "minLength": 1 },
+                  "hybrid": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Offer created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "txHash": { "type": "string" },
+                    "offerSequence": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "403": {
+            "description": "KYC required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/dex/offers/{offerSequence}": {
+      "delete": {
+        "operationId": "cancelDexOffer",
+        "summary": "Cancel a DEX offer",
+        "tags": ["DEX"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "offerSequence",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Offer cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "txHash": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "403": {
+            "description": "KYC required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/dex/orderbook": {
+      "get": {
+        "operationId": "getDexOrderbook",
+        "summary": "Get permissioned DEX order book",
+        "tags": ["DEX"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "tokenId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order book",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asks": { "type": "array", "items": { "type": "object" } },
+                    "bids": { "type": "array", "items": { "type": "object" } }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "403": {
+            "description": "KYC required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
     "/api/v1/eventarc/xrpl/deposit": {
       "post": {
         "operationId": "eventarcXrplDeposit",
