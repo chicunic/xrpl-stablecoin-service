@@ -32,8 +32,8 @@ import {
   issueCredential,
   revokeCredential,
 } from "@token/services/credential.service";
-import { createDomain, deleteDomain, getDomainInfo } from "@token/services/domain.service";
 import { getPermissionedOrderBook } from "@token/services/dex.service";
+import { createDomain, deleteDomain, getDomainInfo } from "@token/services/domain.service";
 import { fundAccount } from "@token/services/faucet.service";
 import { disconnect, getClient } from "@token/services/xrpl.service";
 import type { Client, SubmitResponse } from "xrpl";

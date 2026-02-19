@@ -174,11 +174,7 @@ describe("DEX Routes - REST API Integration", () => {
 
       restAssert.expectSuccess(response, 200);
       expect(response.body.txHash).toBe("mock-cancel-tx-hash");
-      expect(mockCancelOffer).toHaveBeenCalledWith(
-        MOCK_WALLET_DOC.bipIndex,
-        MOCK_WALLET_DOC.address,
-        42,
-      );
+      expect(mockCancelOffer).toHaveBeenCalledWith(MOCK_WALLET_DOC.bipIndex, MOCK_WALLET_DOC.address, 42);
     });
   });
 

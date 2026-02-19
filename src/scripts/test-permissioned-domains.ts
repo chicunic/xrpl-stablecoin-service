@@ -31,8 +31,8 @@ import {
   issueCredential,
   revokeCredential,
 } from "@token/services/credential.service.js";
-import { createDomain, deleteDomain, getDomainInfo } from "@token/services/domain.service.js";
 import { getPermissionedOrderBook } from "@token/services/dex.service.js";
+import { createDomain, deleteDomain, getDomainInfo } from "@token/services/domain.service.js";
 import { fundAccount } from "@token/services/faucet.service.js";
 import { disconnect, getClient } from "@token/services/xrpl.service.js";
 import { Wallet } from "xrpl";
@@ -272,10 +272,7 @@ async function main(): Promise<void> {
       const prepared = await client.autofill(cancelTx);
       const signed = userWallet.sign(prepared);
       const result = await client.submit(signed.tx_blob);
-      assert(
-        result.result.engine_result === "tesSUCCESS",
-        `Offer cancelled: ${result.result.engine_result}`,
-      );
+      assert(result.result.engine_result === "tesSUCCESS", `Offer cancelled: ${result.result.engine_result}`);
     } catch (error) {
       console.error("  ✗ OfferCancel failed:", error);
       failed++;
@@ -327,7 +324,7 @@ async function main(): Promise<void> {
 async function cleanup(): Promise<void> {
   await disconnect();
 
-  console.log("\n" + "=".repeat(50));
+  console.log(`\n${"=".repeat(50)}`);
   console.log(`Results: ${passed} passed, ${failed} failed`);
   console.log("=".repeat(50));
 

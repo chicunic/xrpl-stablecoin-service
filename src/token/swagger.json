@@ -146,12 +146,46 @@
           "xrplTxHash": { "type": "string" }
         }
       },
+      "Invoice": {
+        "type": "object",
+        "properties": {
+          "invoiceId": { "type": "string" },
+          "userId": { "type": "string" },
+          "type": { "type": "string", "enum": ["issued", "received"] },
+          "tokenId": { "type": "string" },
+          "amount": { "type": "number" },
+          "recipientAddress": { "type": "string" },
+          "recipientName": { "type": "string" },
+          "description": { "type": "string" },
+          "dueDate": { "type": "string" },
+          "status": { "type": "string", "enum": ["draft", "pending", "paid", "failed", "cancelled"] },
+          "xrplTxHash": { "type": "string" },
+          "failureReason": { "type": "string" },
+          "createdAt": { "type": "string" },
+          "updatedAt": { "type": "string" },
+          "paidAt": { "type": "string" }
+        }
+      },
+      "ParsedInvoiceData": {
+        "type": "object",
+        "properties": {
+          "tokenId": { "type": "string" },
+          "amount": { "type": "number" },
+          "recipientAddress": { "type": "string" },
+          "recipientName": { "type": "string" },
+          "description": { "type": "string" },
+          "dueDate": { "type": "string" }
+        }
+      },
       "XrpTransaction": {
         "type": "object",
         "properties": {
           "transactionId": { "type": "string" },
           "tokenId": { "type": "string" },
-          "type": { "type": "string", "enum": ["deposit", "withdrawal", "exchange_in", "exchange_out"] },
+          "type": {
+            "type": "string",
+            "enum": ["deposit", "withdrawal", "exchange_in", "exchange_out", "invoice_payment"]
+          },
           "amount": { "type": "number" },
           "description": { "type": "string" },
           "relatedOrderId": { "type": "string" },
@@ -1459,6 +1493,241 @@
           },
           "403": {
             "description": "KYC required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/parse-pdf": {
+      "post": {
+        "operationId": "parseInvoicePdf",
+        "summary": "Parse a NexBridge invoice PDF and extract structured data",
+        "tags": ["Invoice"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["pdf"],
+                "properties": {
+                  "pdf": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Parsed invoice data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ParsedInvoiceData" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or non-NexBridge PDF",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices": {
+      "post": {
+        "operationId": "createInvoice",
+        "summary": "Create an invoice for stablecoin payment",
+        "tags": ["Invoice"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["type", "tokenId", "amount", "recipientAddress", "recipientName", "description"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["issued", "received"] },
+                  "tokenId": { "type": "string", "minLength": 1 },
+                  "amount": { "type": "number", "minimum": 1 },
+                  "recipientAddress": { "type": "string" },
+                  "recipientName": { "type": "string", "minLength": 1 },
+                  "description": { "type": "string", "minLength": 1 },
+                  "dueDate": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invoice created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Invoice" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "403": {
+            "description": "KYC required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listInvoices",
+        "summary": "List user's invoices",
+        "tags": ["Invoice"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["issued", "received"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of invoices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Invoice" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{invoiceId}": {
+      "get": {
+        "operationId": "getInvoice",
+        "summary": "Get invoice details",
+        "tags": ["Invoice"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Invoice" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "404": {
+            "description": "Invoice not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{invoiceId}/pay": {
+      "post": {
+        "operationId": "payInvoice",
+        "summary": "Pay an invoice (executes XRPL stablecoin transfer)",
+        "tags": ["Invoice"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice paid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Invoice" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (not in draft status, recipient not whitelisted)",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "403": {
+            "description": "KYC or MFA required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "404": {
+            "description": "Invoice not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{invoiceId}/cancel": {
+      "post": {
+        "operationId": "cancelInvoice",
+        "summary": "Cancel a draft invoice",
+        "tags": ["Invoice"],
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice cancelled",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Invoice" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (not in draft status)",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "404": {
+            "description": "Invoice not found",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
           }
         }

@@ -7,6 +7,7 @@ import credentialRoutes from "@token/routes/credential.route.js";
 import dexRoutes from "@token/routes/dex.route.js";
 import eventarcRoutes from "@token/routes/eventarc.route.js";
 import exchangeRoutes from "@token/routes/exchange.route.js";
+import invoiceRoutes from "@token/routes/invoice.route.js";
 import kycRoutes from "@token/routes/kyc.route.js";
 import mfaRoutes from "@token/routes/mfa.route.js";
 import pubsubRoutes from "@token/routes/pubsub.route.js";
@@ -51,7 +52,7 @@ app.use(
     apiSpec: path.join(import.meta.dirname, "./swagger.json"),
     validateRequests: true,
     validateResponses: false,
-    ignorePaths: /(.*\/api-docs.*|.*\.well-known.*)/,
+    ignorePaths: /.*\/api-docs.*|.*\.well-known.*/,
   }),
 );
 
@@ -70,6 +71,7 @@ app.use("/api/v1", balanceRoutes);
 app.use("/api/v1", credentialRoutes);
 app.use("/api/v1", dexRoutes);
 app.use("/api/v1", exchangeRoutes);
+app.use("/api/v1", invoiceRoutes);
 app.use("/api/v1", whitelistRoutes);
 app.use("/api/v1", withdrawalRoutes);
 

@@ -127,9 +127,13 @@ describe("Credential Routes - REST API Integration", () => {
         data: () => null,
       });
 
-      const response = await helper.post("/api/v1/users/me/credential/retry", {}, {
-        Authorization: "Bearer valid-session",
-      });
+      const response = await helper.post(
+        "/api/v1/users/me/credential/retry",
+        {},
+        {
+          Authorization: "Bearer valid-session",
+        },
+      );
 
       restAssert.expectError(response, 404, "Wallet not found");
     });
@@ -143,9 +147,13 @@ describe("Credential Routes - REST API Integration", () => {
       mockIssueCredential.mockResolvedValue("mock-issue-tx-hash");
       mockAcceptCredential.mockResolvedValue("mock-accept-tx-hash");
 
-      const response = await helper.post("/api/v1/users/me/credential/retry", {}, {
-        Authorization: "Bearer valid-session",
-      });
+      const response = await helper.post(
+        "/api/v1/users/me/credential/retry",
+        {},
+        {
+          Authorization: "Bearer valid-session",
+        },
+      );
 
       restAssert.expectSuccess(response, 200);
       expect(response.body.credentialTxHash).toBe("mock-issue-tx-hash");
