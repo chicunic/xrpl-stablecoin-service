@@ -6,7 +6,8 @@ import {
   requireMfa,
   requireOperationMfa,
 } from "@token/middleware/auth.js";
-import { cancelInvoice, createInvoice, getInvoice, listInvoices, payInvoice } from "@token/services/invoice.service.js";
+import type { InvoiceData } from "@token/services/invoice.service.js";
+import { cancelInvoice, getInvoice, listInvoices, payInvoice, sendInvoice } from "@token/services/invoice.service.js";
 import { parseInvoicePdf } from "@token/services/invoice-pdf.service.js";
 import type { InvoiceType } from "@token/types/invoice.type.js";
 import type { Response, Router as RouterType } from "express";
@@ -27,7 +28,7 @@ const upload = multer({
 
 const router: RouterType = Router();
 
-router.post("/invoices/parse-pdf", requireAuth, upload.single("pdf"), async (req, res: Response) => {
+router.post("/invoices/pay/parse-pdf", requireAuth, upload.single("pdf"), async (req, res: Response) => {
   try {
     if (!req.file) {
       res.status(400).json({ error: "PDF file is required" });
@@ -40,31 +41,25 @@ router.post("/invoices/parse-pdf", requireAuth, upload.single("pdf"), async (req
   }
 });
 
-router.post("/invoices", requireAuth, requireKyc, async (req, res: Response) => {
+/** Send an invoice to someone */
+router.post("/invoices/send", requireAuth, requireKyc, async (req, res: Response) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
-    const { type, tokenId, amount, recipientAddress, recipientName, description, dueDate } = req.body as {
-      type: InvoiceType;
-      tokenId: string;
-      amount: number;
-      recipientAddress: string;
-      recipientName: string;
-      description: string;
-      dueDate?: string;
-    };
-
-    const invoice = await createInvoice(uid, {
-      type,
-      tokenId,
-      amount,
-      recipientAddress,
-      recipientName,
-      description,
-      dueDate,
-    });
+    const invoice = await sendInvoice(uid, req.body as InvoiceData);
     res.status(201).json(invoice);
   } catch (error) {
-    handleRouteError(error, res, "POST /invoices");
+    handleRouteError(error, res, "POST /invoices/send");
+  }
+});
+
+/** Pay a received invoice */
+router.post("/invoices/pay", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response) => {
+  try {
+    const { uid } = (req as AuthenticatedRequest).user;
+    const invoice = await payInvoice(uid, req.body as InvoiceData);
+    res.status(201).json(invoice);
+  } catch (error) {
+    handleRouteError(error, res, "POST /invoices/pay");
   }
 });
 
@@ -88,23 +83,6 @@ router.get("/invoices/:invoiceId", requireAuth, async (req, res: Response) => {
     handleRouteError(error, res, "GET /invoices/:invoiceId");
   }
 });
-
-router.post(
-  "/invoices/:invoiceId/pay",
-  requireAuth,
-  requireKyc,
-  requireMfa,
-  requireOperationMfa,
-  async (req, res: Response) => {
-    try {
-      const { uid } = (req as AuthenticatedRequest).user;
-      const invoice = await payInvoice(uid, req.params.invoiceId as string);
-      res.json(invoice);
-    } catch (error) {
-      handleRouteError(error, res, "POST /invoices/:invoiceId/pay");
-    }
-  },
-);
 
 router.post("/invoices/:invoiceId/cancel", requireAuth, async (req, res: Response) => {
   try {

@@ -1,5 +1,6 @@
 import { ValidationError } from "@common/utils/error.handler.js";
-import { PDFParse } from "pdf-parse";
+import jsQR from "jsqr";
+import { PNG } from "pngjs";
 
 export interface ParsedInvoiceData {
   tokenId: string;
@@ -8,33 +9,34 @@ export interface ParsedInvoiceData {
   recipientName: string;
   description: string;
   dueDate?: string;
+  invoiceId?: string;
 }
 
-const DATA_MARKER = "NEXBRIDGE_INVOICE_DATA:";
-
 export async function parseInvoicePdf(buffer: Buffer): Promise<ParsedInvoiceData> {
-  const parser = new PDFParse({});
-  await parser.load(buffer);
-  const text = await parser.getText();
+  const { pdf } = await import("pdf-to-img");
+  const doc = await pdf(buffer, { scale: 2 });
 
-  const markerIndex = text.indexOf(DATA_MARKER);
-  if (markerIndex === -1) {
-    throw new ValidationError("Not a NexBridge invoice PDF");
+  let qrData: string | null = null;
+
+  for await (const pageBuffer of doc) {
+    const png = PNG.sync.read(pageBuffer);
+    const imageData = new Uint8ClampedArray(png.data);
+    const result = jsQR(imageData, png.width, png.height);
+    if (result) {
+      qrData = result.data;
+      break;
+    }
   }
 
-  const base64Start = markerIndex + DATA_MARKER.length;
-  // Extract until whitespace or end of text
-  const match = text.slice(base64Start).match(/^([A-Za-z0-9+/=]+)/);
-  if (!match) {
-    throw new ValidationError("Failed to extract invoice data from PDF");
+  if (!qrData) {
+    throw new ValidationError("Not a NexBridge invoice PDF");
   }
 
   let parsed: unknown;
   try {
-    const json = Buffer.from(match[1] as string, "base64").toString("utf-8");
-    parsed = JSON.parse(json);
+    parsed = JSON.parse(qrData);
   } catch {
-    throw new ValidationError("Failed to decode invoice data from PDF");
+    throw new ValidationError("Failed to decode QR code data from PDF");
   }
 
   const data = parsed as Record<string, unknown>;
@@ -50,5 +52,6 @@ export async function parseInvoicePdf(buffer: Buffer): Promise<ParsedInvoiceData
     recipientName: String(data.recipientName),
     description: String(data.description),
     ...(data.dueDate ? { dueDate: String(data.dueDate) } : {}),
+    ...(data.invoiceId ? { invoiceId: String(data.invoiceId) } : {}),
   };
 }

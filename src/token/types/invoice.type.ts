@@ -1,8 +1,8 @@
 import type { Timestamp } from "firebase-admin/firestore";
 
-export type InvoiceStatus = "draft" | "pending" | "paid" | "failed" | "cancelled";
+export type InvoiceStatus = "pending" | "paid" | "failed" | "cancelled";
 
-export type InvoiceType = "issued" | "received";
+export type InvoiceType = "send" | "pay";
 
 export interface Invoice {
   invoiceId: string;
@@ -20,4 +20,5 @@ export interface Invoice {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   paidAt?: Timestamp;
+  paymentId?: string;
 }

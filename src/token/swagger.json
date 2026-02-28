@@ -151,19 +151,20 @@
         "properties": {
           "invoiceId": { "type": "string" },
           "userId": { "type": "string" },
-          "type": { "type": "string", "enum": ["issued", "received"] },
+          "type": { "type": "string", "enum": ["send", "pay"] },
           "tokenId": { "type": "string" },
           "amount": { "type": "number" },
           "recipientAddress": { "type": "string" },
           "recipientName": { "type": "string" },
           "description": { "type": "string" },
           "dueDate": { "type": "string" },
-          "status": { "type": "string", "enum": ["draft", "pending", "paid", "failed", "cancelled"] },
+          "status": { "type": "string", "enum": ["pending", "paid", "failed", "cancelled"] },
           "xrplTxHash": { "type": "string" },
           "failureReason": { "type": "string" },
           "createdAt": { "type": "string" },
           "updatedAt": { "type": "string" },
-          "paidAt": { "type": "string" }
+          "paidAt": { "type": "string" },
+          "paymentId": { "type": "string" }
         }
       },
       "ParsedInvoiceData": {
@@ -174,7 +175,8 @@
           "recipientAddress": { "type": "string" },
           "recipientName": { "type": "string" },
           "description": { "type": "string" },
-          "dueDate": { "type": "string" }
+          "dueDate": { "type": "string" },
+          "invoiceId": { "type": "string" }
         }
       },
       "XrpTransaction": {
@@ -1498,7 +1500,7 @@
         }
       }
     },
-    "/api/v1/invoices/parse-pdf": {
+    "/api/v1/invoices/pay/parse-pdf": {
       "post": {
         "operationId": "parseInvoicePdf",
         "summary": "Parse a NexBridge invoice PDF and extract structured data",
@@ -1538,10 +1540,10 @@
         }
       }
     },
-    "/api/v1/invoices": {
+    "/api/v1/invoices/send": {
       "post": {
-        "operationId": "createInvoice",
-        "summary": "Create an invoice for stablecoin payment",
+        "operationId": "sendInvoice",
+        "summary": "Send an invoice to someone (record only, no payment)",
         "tags": ["Invoice"],
         "security": [{ "BearerAuth": [] }],
         "requestBody": {
@@ -1550,9 +1552,8 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["type", "tokenId", "amount", "recipientAddress", "recipientName", "description"],
+                "required": ["tokenId", "amount", "recipientAddress", "recipientName", "description"],
                 "properties": {
-                  "type": { "type": "string", "enum": ["issued", "received"] },
                   "tokenId": { "type": "string", "minLength": 1 },
                   "amount": { "type": "number", "minimum": 1 },
                   "recipientAddress": { "type": "string" },
@@ -1566,7 +1567,7 @@
         },
         "responses": {
           "201": {
-            "description": "Invoice created",
+            "description": "Invoice sent",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Invoice" }
@@ -1586,7 +1587,59 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
           }
         }
-      },
+      }
+    },
+    "/api/v1/invoices/pay": {
+      "post": {
+        "operationId": "payInvoice",
+        "summary": "Pay an invoice (executes XRPL stablecoin transfer immediately)",
+        "tags": ["Invoice"],
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tokenId", "amount", "recipientAddress", "recipientName", "description"],
+                "properties": {
+                  "tokenId": { "type": "string", "minLength": 1 },
+                  "amount": { "type": "number", "minimum": 1 },
+                  "recipientAddress": { "type": "string" },
+                  "recipientName": { "type": "string", "minLength": 1 },
+                  "description": { "type": "string", "minLength": 1 },
+                  "dueDate": { "type": "string" },
+                  "invoiceId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invoice paid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Invoice" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "403": {
+            "description": "KYC or MFA required",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices": {
       "get": {
         "operationId": "listInvoices",
         "summary": "List user's invoices",
@@ -1597,7 +1650,7 @@
             "name": "type",
             "in": "query",
             "required": false,
-            "schema": { "type": "string", "enum": ["issued", "received"] }
+            "schema": { "type": "string", "enum": ["send", "pay"] }
           }
         ],
         "responses": {
@@ -1653,52 +1706,10 @@
         }
       }
     },
-    "/api/v1/invoices/{invoiceId}/pay": {
-      "post": {
-        "operationId": "payInvoice",
-        "summary": "Pay an invoice (executes XRPL stablecoin transfer)",
-        "tags": ["Invoice"],
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [
-          {
-            "name": "invoiceId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Invoice paid",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Invoice" }
-              }
-            }
-          },
-          "400": {
-            "description": "Validation error (not in draft status, recipient not whitelisted)",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
-          },
-          "403": {
-            "description": "KYC or MFA required",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
-          },
-          "404": {
-            "description": "Invoice not found",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
-          }
-        }
-      }
-    },
     "/api/v1/invoices/{invoiceId}/cancel": {
       "post": {
         "operationId": "cancelInvoice",
-        "summary": "Cancel a draft invoice",
+        "summary": "Cancel a pending invoice",
         "tags": ["Invoice"],
         "security": [{ "BearerAuth": [] }],
         "parameters": [
@@ -1719,7 +1730,7 @@
             }
           },
           "400": {
-            "description": "Validation error (not in draft status)",
+            "description": "Validation error (not in pending status)",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
           },
           "401": {

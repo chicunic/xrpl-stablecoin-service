@@ -41,7 +41,13 @@ const allowedOrigins = [
 app.set("json replacer", firestoreTimestampReplacer);
 app.use(helmet());
 app.use(cors({ origin: allowedOrigins }));
-app.use(express.json());
+app.use((req, res, next) => {
+  if (req.headers["content-type"]?.startsWith("multipart/form-data")) {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
 
 if (process.env.NODE_ENV === "development") {
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -52,7 +58,7 @@ app.use(
     apiSpec: path.join(import.meta.dirname, "./swagger.json"),
     validateRequests: true,
     validateResponses: false,
-    ignorePaths: /.*\/api-docs.*|.*\.well-known.*/,
+    ignorePaths: /.*\/api-docs.*|.*\.well-known.*|.*\/parse-pdf.*/,
   }),
 );
 
