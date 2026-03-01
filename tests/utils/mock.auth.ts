@@ -1,9 +1,13 @@
-const mockVerifyIdToken = jest.fn();
-const mockVerifySessionCookie = jest.fn();
-const mockCreateSessionCookie = jest.fn();
-const mockSetCustomUserClaims = jest.fn();
+const { mockVerifyIdToken, mockVerifySessionCookie, mockCreateSessionCookie, mockSetCustomUserClaims } = vi.hoisted(
+  () => ({
+    mockVerifyIdToken: vi.fn(),
+    mockVerifySessionCookie: vi.fn(),
+    mockCreateSessionCookie: vi.fn(),
+    mockSetCustomUserClaims: vi.fn(),
+  }),
+);
 
-jest.mock("firebase-admin/auth", () => ({
+vi.mock("firebase-admin/auth", () => ({
   getAuth: () => ({
     verifyIdToken: mockVerifyIdToken,
     verifySessionCookie: mockVerifySessionCookie,

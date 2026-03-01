@@ -5,35 +5,35 @@ import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.in
 import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
 
 // Mock wallet.service to avoid real Secret Manager calls
-jest.mock("../../src/token/services/wallet.service", () => ({
-  deriveWallet: jest.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
-  getWalletForSigning: jest.fn().mockResolvedValue({ sign: jest.fn() }),
-  allocateXrpAddressIndex: jest.fn().mockResolvedValue(1),
+vi.mock("../../src/token/services/wallet.service", () => ({
+  deriveWallet: vi.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
+  getWalletForSigning: vi.fn().mockResolvedValue({ sign: vi.fn() }),
+  allocateXrpAddressIndex: vi.fn().mockResolvedValue(1),
 }));
 
 // Mock faucet.service to avoid real XRPL faucet calls
-jest.mock("../../src/token/services/faucet.service", () => ({
-  fundAccount: jest.fn().mockResolvedValue({ balance: 1000 }),
+vi.mock("../../src/token/services/faucet.service", () => ({
+  fundAccount: vi.fn().mockResolvedValue({ balance: 1000 }),
 }));
 
 // Mock trustline.service to avoid real XRPL trustline calls
-jest.mock("../../src/token/services/trustline.service", () => ({
-  hasTrustLine: jest.fn().mockResolvedValue(false),
-  setTrustLine: jest.fn().mockResolvedValue("mock-trustline-tx-hash"),
-  ensureTrustLine: jest.fn().mockResolvedValue(undefined),
+vi.mock("../../src/token/services/trustline.service", () => ({
+  hasTrustLine: vi.fn().mockResolvedValue(false),
+  setTrustLine: vi.fn().mockResolvedValue("mock-trustline-tx-hash"),
+  ensureTrustLine: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock credential.service to avoid real XRPL credential calls
-jest.mock("../../src/token/services/credential.service", () => ({
-  issueCredential: jest.fn().mockResolvedValue("mock-credential-tx-hash"),
-  acceptCredential: jest.fn().mockResolvedValue("mock-credential-accept-tx-hash"),
+vi.mock("../../src/token/services/credential.service", () => ({
+  issueCredential: vi.fn().mockResolvedValue("mock-credential-tx-hash"),
+  acceptCredential: vi.fn().mockResolvedValue("mock-credential-accept-tx-hash"),
   CREDENTIAL_TYPE_KYC_JAPAN_HEX: "4B59435F4A4150414E",
 }));
 
 // Mock bank config to avoid real Secret Manager calls
-jest.mock("../../src/token/config/bank", () => ({
-  getBankServiceUrl: jest.fn().mockReturnValue("http://mock-bank-service"),
-  getBankAuthToken: jest.fn().mockResolvedValue("mock-bank-auth-token"),
+vi.mock("../../src/token/config/bank", () => ({
+  getBankServiceUrl: vi.fn().mockReturnValue("http://mock-bank-service"),
+  getBankAuthToken: vi.fn().mockResolvedValue("mock-bank-auth-token"),
 }));
 
 const VALID_KYC_INPUT = {

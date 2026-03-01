@@ -1,7 +1,11 @@
-import { createJestMock, createSimpleModuleMock } from "./mock.factory";
+const _checkAndMarkProcessed = vi.hoisted(() => vi.fn());
+
+vi.mock("../../src/common/utils/idempotency", () => ({
+  checkAndMarkProcessed: _checkAndMarkProcessed,
+}));
 
 export const mockIdempotency = {
-  checkAndMarkProcessed: createJestMock(),
+  checkAndMarkProcessed: _checkAndMarkProcessed,
   setup: () => {
     mockIdempotency.checkAndMarkProcessed.mockResolvedValue(false);
   },
@@ -9,9 +13,3 @@ export const mockIdempotency = {
     mockIdempotency.checkAndMarkProcessed.mockReset();
   },
 };
-
-export function enableIdempotencyMock() {
-  createSimpleModuleMock("../../src/common/utils/idempotency", {
-    checkAndMarkProcessed: mockIdempotency.checkAndMarkProcessed,
-  });
-}

@@ -3,10 +3,26 @@ import { restAssert } from "../../utils/helpers";
 import { mockFirestoreService } from "../../utils/mock.index";
 import { MOCK_BANK_TRANSACTION } from "../utils/data";
 import { mockBankAuth } from "../utils/mock.bank-auth";
-import { enableTransactionServiceMock, mockTransactionService } from "../utils/mock.bank-services";
+import { mockTransactionService } from "../utils/mock.bank-services";
 import { BankRestTestHelper, createBankTestApp } from "../utils/server.rest";
 
-enableTransactionServiceMock();
+vi.mock("@bank/middleware/bank-auth.js", async () => {
+  const { mockBankAuth } = await import("../utils/mock.bank-auth");
+  return {
+    requireBankAuth: mockBankAuth.requireBankAuth,
+    rejectApiToken: mockBankAuth.rejectApiToken,
+    generateToken: mockBankAuth.generateToken,
+    generateApiToken: mockBankAuth.generateApiToken,
+    verifyToken: mockBankAuth.verifyToken,
+  };
+});
+
+vi.mock("@bank/services/transaction.service.js", async () => {
+  const { mockTransactionService } = await import("../utils/mock.bank-services");
+  return {
+    getTransactionsByAccount: mockTransactionService.getTransactionsByAccount,
+  };
+});
 
 describe("Bank Transaction Routes - REST API Integration", () => {
   let app: express.Application;

@@ -4,9 +4,9 @@ import { mockFirestoreService, mockIdentityPlatformAuth } from "./utils/mock.ind
 import { createCompleteTestApp, RestTestHelper } from "./utils/server.rest";
 
 // Mock bank config to avoid real Secret Manager calls
-jest.mock("../src/token/config/bank", () => ({
-  getBankServiceUrl: jest.fn().mockReturnValue("http://mock-bank-service"),
-  getBankAuthToken: jest.fn().mockResolvedValue("mock-bank-auth-token"),
+vi.mock("../src/token/config/bank", () => ({
+  getBankServiceUrl: vi.fn().mockReturnValue("http://mock-bank-service"),
+  getBankAuthToken: vi.fn().mockResolvedValue("mock-bank-auth-token"),
 }));
 
 describe("Health Check - REST API", () => {

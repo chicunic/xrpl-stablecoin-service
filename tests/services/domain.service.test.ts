@@ -1,19 +1,19 @@
-import { createJestMock, createSimpleModuleMock } from "../utils/mock.factory";
+const { mockGetClient, mockSignWithKms, mockEncodeForSigning } = vi.hoisted(() => ({
+  mockGetClient: vi.fn(),
+  mockSignWithKms: vi.fn(),
+  mockEncodeForSigning: vi.fn(),
+}));
 
-const mockGetClient = createJestMock();
-const mockSignWithKms = createJestMock();
-const mockEncodeForSigning = createJestMock();
-
-createSimpleModuleMock("../../src/token/services/xrpl.service", {
+vi.mock("../../src/token/services/xrpl.service", () => ({
   getClient: mockGetClient,
-});
+}));
 
-createSimpleModuleMock("../../src/token/services/signing.service", {
+vi.mock("../../src/token/services/signing.service", () => ({
   signWithKms: mockSignWithKms,
-});
+}));
 
-jest.mock("xrpl", () => ({
-  ...jest.requireActual("xrpl"),
+vi.mock("xrpl", async () => ({
+  ...(await vi.importActual("xrpl")),
   encodeForSigning: (...args: any[]) => mockEncodeForSigning(...args),
 }));
 
@@ -21,15 +21,15 @@ import { createDomain, deleteDomain, getDomainInfo, updateDomain } from "../../s
 
 describe("domain.service", () => {
   const mockClient = {
-    autofill: createJestMock(),
-    submit: createJestMock(),
-    request: createJestMock(),
+    autofill: vi.fn(),
+    submit: vi.fn(),
+    request: vi.fn(),
   };
 
   const testCredentials = [{ issuer: "rIssuer123", credentialType: "4B59435F4A4150414E" }];
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGetClient.mockResolvedValue(mockClient);
     mockSignWithKms.mockResolvedValue("mock-signature");
     mockEncodeForSigning.mockReturnValue("AABBCCDD");

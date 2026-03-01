@@ -3,33 +3,33 @@ import { restAssert } from "../utils/helpers";
 import { mockIdentityPlatformAuth } from "../utils/mock.index";
 import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
 
-const mockGenerateMfaToken = jest.fn();
+const mockGenerateMfaToken = vi.fn();
 
-jest.mock("../../src/token/services/mfa-token.service", () => ({
+vi.mock("../../src/token/services/mfa-token.service", () => ({
   generateMfaToken: mockGenerateMfaToken,
-  verifyMfaToken: jest.fn(),
+  verifyMfaToken: vi.fn(),
 }));
 
 // Mock wallet.service to avoid real Secret Manager calls
-jest.mock("../../src/token/services/wallet.service", () => ({
-  deriveWallet: jest.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
-  getWalletForSigning: jest.fn().mockResolvedValue({ sign: jest.fn() }),
-  allocateXrpAddressIndex: jest.fn().mockResolvedValue(1),
+vi.mock("../../src/token/services/wallet.service", () => ({
+  deriveWallet: vi.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
+  getWalletForSigning: vi.fn().mockResolvedValue({ sign: vi.fn() }),
+  allocateXrpAddressIndex: vi.fn().mockResolvedValue(1),
 }));
 
-jest.mock("../../src/token/services/faucet.service", () => ({
-  fundAccount: jest.fn().mockResolvedValue({ balance: 1000 }),
+vi.mock("../../src/token/services/faucet.service", () => ({
+  fundAccount: vi.fn().mockResolvedValue({ balance: 1000 }),
 }));
 
-jest.mock("../../src/token/services/trustline.service", () => ({
-  hasTrustLine: jest.fn().mockResolvedValue(false),
-  setTrustLine: jest.fn().mockResolvedValue("mock-trustline-tx-hash"),
-  ensureTrustLine: jest.fn().mockResolvedValue(undefined),
+vi.mock("../../src/token/services/trustline.service", () => ({
+  hasTrustLine: vi.fn().mockResolvedValue(false),
+  setTrustLine: vi.fn().mockResolvedValue("mock-trustline-tx-hash"),
+  ensureTrustLine: vi.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock("../../src/token/config/bank", () => ({
-  getBankServiceUrl: jest.fn().mockReturnValue("http://mock-bank-service"),
-  getBankAuthToken: jest.fn().mockResolvedValue("mock-bank-auth-token"),
+vi.mock("../../src/token/config/bank", () => ({
+  getBankServiceUrl: vi.fn().mockReturnValue("http://mock-bank-service"),
+  getBankAuthToken: vi.fn().mockResolvedValue("mock-bank-auth-token"),
 }));
 
 describe("MFA Routes - REST API Integration", () => {

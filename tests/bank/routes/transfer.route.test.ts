@@ -4,16 +4,33 @@ import { restAssert } from "../../utils/helpers";
 import { mockFirestoreService } from "../../utils/mock.index";
 import { TEST_BANK_PIN } from "../utils/data";
 import { mockBankAuth } from "../utils/mock.bank-auth";
-import {
-  enableAccountServiceMock,
-  enableTransferServiceMock,
-  mockAccountService,
-  mockTransferService,
-} from "../utils/mock.bank-services";
+import { mockAccountService, mockTransferService } from "../utils/mock.bank-services";
 import { BankRestTestHelper, createBankTestApp } from "../utils/server.rest";
 
-enableAccountServiceMock();
-enableTransferServiceMock();
+vi.mock("@bank/middleware/bank-auth.js", async () => {
+  const { mockBankAuth } = await import("../utils/mock.bank-auth");
+  return {
+    requireBankAuth: mockBankAuth.requireBankAuth,
+    rejectApiToken: mockBankAuth.rejectApiToken,
+    generateToken: mockBankAuth.generateToken,
+    generateApiToken: mockBankAuth.generateApiToken,
+    verifyToken: mockBankAuth.verifyToken,
+  };
+});
+
+vi.mock("@bank/services/account.service.js", async () => {
+  const { mockAccountService } = await import("../utils/mock.bank-services");
+  return {
+    verifyPin: mockAccountService.verifyPin,
+  };
+});
+
+vi.mock("@bank/services/transfer.service.js", async () => {
+  const { mockTransferService } = await import("../utils/mock.bank-services");
+  return {
+    transfer: mockTransferService.transfer,
+  };
+});
 
 describe("Bank Transfer Routes - REST API Integration", () => {
   let app: express.Application;

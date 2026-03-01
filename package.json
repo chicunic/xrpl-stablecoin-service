@@ -13,8 +13,10 @@
     "dev:bank": "tsx watch src/bank/index.ts",
     "check": "tsc --noEmit && biome check",
     "fix": "biome check --write --unsafe",
-    "test": "jest --verbose",
-    "test:integration": "XRPL_NETWORK=devnet SIGNING_PROVIDER=sm jest --config jest.integration.config.ts --verbose --runInBand"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "XRPL_NETWORK=devnet SIGNING_PROVIDER=sm vitest run --config vitest.integration.config.ts"
   },
   "engines": {
     "node": ">=24"
@@ -40,23 +42,19 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.4",
-    "@jest/globals": "^30.2.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/jest": "^30.0.0",
     "@types/multer": "^2.0.0",
-    "@types/node": "^25.3.2",
+    "@types/node": "^25.3.3",
     "@types/pngjs": "^6.0.5",
     "@types/supertest": "^7.2.0",
     "@types/swagger-ui-express": "^4.1.8",
     "bip39": "^3.1.0",
-    "jest": "^30.2.0",
     "supertest": "^7.2.2",
-    "ts-jest": "^29.4.6",
-    "ts-node": "^10.9.2",
+    "vitest": "^4.0.18",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
-  "packageManager": "pnpm@11.0.0-dev.1005+sha512.91f84a392eea348ea4852a182912d2520273a4336f933b78cc44bc931eb999923c097e9433a9b355adc1f725725ea99082fc9f032a559df832632e764c92c798"
+  "packageManager": "pnpm@10.30.3+sha512.c961d1e0a2d8e354ecaa5166b822516668b7f44cb5bd95122d590dd81922f606f5473b6d23ec4a5be05e7fcd18e8488d47d978bbe981872f1145d06e9a740017"
 }

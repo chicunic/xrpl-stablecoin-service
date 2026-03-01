@@ -12,10 +12,33 @@ import {
   TEST_BANK_PIN,
 } from "../utils/data";
 import { mockBankAuth } from "../utils/mock.bank-auth";
-import { enableAccountServiceMock, mockAccountService } from "../utils/mock.bank-services";
+import { mockAccountService } from "../utils/mock.bank-services";
 import { BankRestTestHelper, createBankTestApp } from "../utils/server.rest";
 
-enableAccountServiceMock();
+vi.mock("@bank/middleware/bank-auth.js", async () => {
+  const { mockBankAuth } = await import("../utils/mock.bank-auth");
+  return {
+    requireBankAuth: mockBankAuth.requireBankAuth,
+    rejectApiToken: mockBankAuth.rejectApiToken,
+    generateToken: mockBankAuth.generateToken,
+    generateApiToken: mockBankAuth.generateApiToken,
+    verifyToken: mockBankAuth.verifyToken,
+  };
+});
+
+vi.mock("@bank/services/account.service.js", async () => {
+  const { mockAccountService } = await import("../utils/mock.bank-services");
+  return {
+    createAccount: mockAccountService.createAccount,
+    login: mockAccountService.login,
+    getAccountById: mockAccountService.getAccountById,
+    verifyPin: mockAccountService.verifyPin,
+    updateBalance: mockAccountService.updateBalance,
+    lookupAccount: mockAccountService.lookupAccount,
+    updateAccount: mockAccountService.updateAccount,
+    changePin: mockAccountService.changePin,
+  };
+});
 
 describe("Bank Account Routes - REST API Integration", () => {
   let app: express.Application;

@@ -1,9 +1,20 @@
-import { createJestMock, createSimpleModuleMock } from "./mock.factory";
+const _pubsub = vi.hoisted(() => ({
+  publishMessage: vi.fn(),
+  initializePubSub: vi.fn(),
+  getPubSubClient: vi.fn(),
+}));
+
+vi.mock("../../src/common/config/pubsub", () => ({
+  publishMessage: _pubsub.publishMessage,
+  initializePubSub: _pubsub.initializePubSub,
+  getPubSubClient: _pubsub.getPubSubClient,
+  BANK_DEPOSIT_TOPIC: "bank-deposit-events",
+}));
 
 export const mockPubSubService = {
-  publishMessage: createJestMock(),
-  initializePubSub: createJestMock(),
-  getPubSubClient: createJestMock(),
+  publishMessage: _pubsub.publishMessage,
+  initializePubSub: _pubsub.initializePubSub,
+  getPubSubClient: _pubsub.getPubSubClient,
   setup: () => {
     mockPubSubService.publishMessage.mockResolvedValue("mock-message-id");
     mockPubSubService.initializePubSub.mockReturnValue(undefined);
@@ -15,12 +26,3 @@ export const mockPubSubService = {
     mockPubSubService.getPubSubClient.mockReset();
   },
 };
-
-export function enablePubSubServiceMock() {
-  createSimpleModuleMock("../../src/common/config/pubsub", {
-    publishMessage: mockPubSubService.publishMessage,
-    initializePubSub: mockPubSubService.initializePubSub,
-    getPubSubClient: mockPubSubService.getPubSubClient,
-    BANK_DEPOSIT_TOPIC: "bank-deposit-events",
-  });
-}

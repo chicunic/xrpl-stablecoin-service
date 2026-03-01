@@ -3,38 +3,38 @@ import { restAssert } from "../utils/helpers";
 import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.index";
 
 // Mock bank config to avoid real Secret Manager calls
-jest.mock("../../src/token/config/bank", () => ({
-  getBankServiceUrl: jest.fn().mockReturnValue("http://mock-bank-service"),
-  getBankAuthToken: jest.fn().mockResolvedValue("mock-bank-auth-token"),
+vi.mock("../../src/token/config/bank", () => ({
+  getBankServiceUrl: vi.fn().mockReturnValue("http://mock-bank-service"),
+  getBankAuthToken: vi.fn().mockResolvedValue("mock-bank-auth-token"),
 }));
 
 // Mock xrpl.service to avoid real XRPL connections
-jest.mock("../../src/token/services/xrpl.service", () => ({
-  sendToken: jest.fn().mockResolvedValue("mock-tx-hash"),
-  sendTokenFromUser: jest.fn().mockResolvedValue("mock-tx-hash"),
-  sendXrpFromUser: jest.fn().mockResolvedValue("mock-tx-hash"),
-  getBalances: jest.fn().mockResolvedValue([]),
-  getClient: jest.fn().mockResolvedValue({}),
-  disconnect: jest.fn().mockResolvedValue(undefined),
+vi.mock("../../src/token/services/xrpl.service", () => ({
+  sendToken: vi.fn().mockResolvedValue("mock-tx-hash"),
+  sendTokenFromUser: vi.fn().mockResolvedValue("mock-tx-hash"),
+  sendXrpFromUser: vi.fn().mockResolvedValue("mock-tx-hash"),
+  getBalances: vi.fn().mockResolvedValue([]),
+  getClient: vi.fn().mockResolvedValue({}),
+  disconnect: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock wallet.service to avoid real Secret Manager calls
-jest.mock("../../src/token/services/wallet.service", () => ({
-  deriveWallet: jest.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
-  getWalletForSigning: jest.fn().mockResolvedValue({ sign: jest.fn() }),
-  allocateXrpAddressIndex: jest.fn().mockResolvedValue(1),
+vi.mock("../../src/token/services/wallet.service", () => ({
+  deriveWallet: vi.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
+  getWalletForSigning: vi.fn().mockResolvedValue({ sign: vi.fn() }),
+  allocateXrpAddressIndex: vi.fn().mockResolvedValue(1),
 }));
 
 // Mock faucet.service to avoid real XRPL faucet calls
-jest.mock("../../src/token/services/faucet.service", () => ({
-  fundAccount: jest.fn().mockResolvedValue({ balance: 1000 }),
+vi.mock("../../src/token/services/faucet.service", () => ({
+  fundAccount: vi.fn().mockResolvedValue({ balance: 1000 }),
 }));
 
 // Mock trustline.service to avoid real XRPL trustline calls
-jest.mock("../../src/token/services/trustline.service", () => ({
-  hasTrustLine: jest.fn().mockResolvedValue(false),
-  setTrustLine: jest.fn().mockResolvedValue("mock-trustline-tx-hash"),
-  ensureTrustLine: jest.fn().mockResolvedValue(undefined),
+vi.mock("../../src/token/services/trustline.service", () => ({
+  hasTrustLine: vi.fn().mockResolvedValue(false),
+  setTrustLine: vi.fn().mockResolvedValue("mock-trustline-tx-hash"),
+  ensureTrustLine: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";

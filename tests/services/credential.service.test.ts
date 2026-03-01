@@ -1,24 +1,24 @@
-import { createJestMock, createSimpleModuleMock } from "../utils/mock.factory";
+const { mockGetClient, mockSignWithKms, mockGetWalletForSigning, mockEncodeForSigning } = vi.hoisted(() => ({
+  mockGetClient: vi.fn(),
+  mockSignWithKms: vi.fn(),
+  mockGetWalletForSigning: vi.fn(),
+  mockEncodeForSigning: vi.fn(),
+}));
 
-const mockGetClient = createJestMock();
-const mockSignWithKms = createJestMock();
-const mockGetWalletForSigning = createJestMock();
-const mockEncodeForSigning = createJestMock();
-
-createSimpleModuleMock("../../src/token/services/xrpl.service", {
+vi.mock("../../src/token/services/xrpl.service", () => ({
   getClient: mockGetClient,
-});
+}));
 
-createSimpleModuleMock("../../src/token/services/signing.service", {
+vi.mock("../../src/token/services/signing.service", () => ({
   signWithKms: mockSignWithKms,
-});
+}));
 
-createSimpleModuleMock("../../src/token/services/wallet.service", {
+vi.mock("../../src/token/services/wallet.service", () => ({
   getWalletForSigning: mockGetWalletForSigning,
-});
+}));
 
-jest.mock("xrpl", () => ({
-  ...jest.requireActual("xrpl"),
+vi.mock("xrpl", async () => ({
+  ...(await vi.importActual("xrpl")),
   encodeForSigning: (...args: any[]) => mockEncodeForSigning(...args),
 }));
 
@@ -32,17 +32,17 @@ import {
 
 describe("credential.service", () => {
   const mockClient = {
-    autofill: createJestMock(),
-    submit: createJestMock(),
-    request: createJestMock(),
+    autofill: vi.fn(),
+    submit: vi.fn(),
+    request: vi.fn(),
   };
 
   const mockWallet = {
-    sign: createJestMock(),
+    sign: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGetClient.mockResolvedValue(mockClient);
     mockSignWithKms.mockResolvedValue("mock-signature");
     mockGetWalletForSigning.mockResolvedValue(mockWallet);

@@ -1,14 +1,12 @@
-import { createJestMock, createSimpleModuleMock } from "../../utils/mock.factory";
-
 export const mockAccountService = {
-  createAccount: createJestMock(),
-  login: createJestMock(),
-  getAccountById: createJestMock(),
-  verifyPin: createJestMock(),
-  updateBalance: createJestMock(),
-  lookupAccount: createJestMock(),
-  updateAccount: createJestMock(),
-  changePin: createJestMock(),
+  createAccount: vi.fn(),
+  login: vi.fn(),
+  getAccountById: vi.fn(),
+  verifyPin: vi.fn(),
+  updateBalance: vi.fn(),
+  lookupAccount: vi.fn(),
+  updateAccount: vi.fn(),
+  changePin: vi.fn(),
   setup: () => {
     mockAccountService.createAccount.mockResolvedValue({});
     mockAccountService.login.mockResolvedValue({});
@@ -32,7 +30,7 @@ export const mockAccountService = {
 };
 
 export const mockTransactionService = {
-  getTransactionsByAccount: createJestMock(),
+  getTransactionsByAccount: vi.fn(),
   setup: () => {
     mockTransactionService.getTransactionsByAccount.mockResolvedValue([]);
   },
@@ -42,9 +40,9 @@ export const mockTransactionService = {
 };
 
 export const mockTransferService = {
-  deposit: createJestMock(),
-  withdraw: createJestMock(),
-  transfer: createJestMock(),
+  deposit: vi.fn(),
+  withdraw: vi.fn(),
+  transfer: vi.fn(),
   setup: () => {
     mockTransferService.deposit.mockResolvedValue({ balance: 0 });
     mockTransferService.withdraw.mockResolvedValue({ balance: 0 });
@@ -57,38 +55,11 @@ export const mockTransferService = {
   },
 };
 
-export function enableAccountServiceMock() {
-  createSimpleModuleMock("../../src/bank/services/account.service", {
-    createAccount: mockAccountService.createAccount,
-    login: mockAccountService.login,
-    getAccountById: mockAccountService.getAccountById,
-    verifyPin: mockAccountService.verifyPin,
-    updateBalance: mockAccountService.updateBalance,
-    lookupAccount: mockAccountService.lookupAccount,
-    updateAccount: mockAccountService.updateAccount,
-    changePin: mockAccountService.changePin,
-  });
-}
-
-export function enableTransactionServiceMock() {
-  createSimpleModuleMock("../../src/bank/services/transaction.service", {
-    getTransactionsByAccount: mockTransactionService.getTransactionsByAccount,
-  });
-}
-
-export function enableTransferServiceMock() {
-  createSimpleModuleMock("../../src/bank/services/transfer.service", {
-    deposit: mockTransferService.deposit,
-    withdraw: mockTransferService.withdraw,
-    transfer: mockTransferService.transfer,
-  });
-}
-
 export const mockVirtualAccountService = {
-  createVirtualAccount: createJestMock(),
-  listVirtualAccounts: createJestMock(),
-  getVirtualAccountById: createJestMock(),
-  updateVirtualAccount: createJestMock(),
+  createVirtualAccount: vi.fn(),
+  listVirtualAccounts: vi.fn(),
+  getVirtualAccountById: vi.fn(),
+  updateVirtualAccount: vi.fn(),
   setup: () => {
     mockVirtualAccountService.createVirtualAccount.mockResolvedValue({});
     mockVirtualAccountService.listVirtualAccounts.mockResolvedValue([]);
@@ -102,12 +73,3 @@ export const mockVirtualAccountService = {
     mockVirtualAccountService.updateVirtualAccount.mockReset();
   },
 };
-
-export function enableVirtualAccountServiceMock() {
-  createSimpleModuleMock("../../src/bank/services/virtual-account.service", {
-    createVirtualAccount: mockVirtualAccountService.createVirtualAccount,
-    listVirtualAccounts: mockVirtualAccountService.listVirtualAccounts,
-    getVirtualAccountById: mockVirtualAccountService.getVirtualAccountById,
-    updateVirtualAccount: mockVirtualAccountService.updateVirtualAccount,
-  });
-}

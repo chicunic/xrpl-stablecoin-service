@@ -1,15 +1,15 @@
-import { createJestMock, createSimpleModuleMock } from "../utils/mock.factory";
+const { mockGetClient, mockGetWalletForSigning } = vi.hoisted(() => ({
+  mockGetClient: vi.fn(),
+  mockGetWalletForSigning: vi.fn(),
+}));
 
-const mockGetClient = createJestMock();
-const mockGetWalletForSigning = createJestMock();
-
-createSimpleModuleMock("../../src/token/services/xrpl.service", {
+vi.mock("../../src/token/services/xrpl.service", () => ({
   getClient: mockGetClient,
-});
+}));
 
-createSimpleModuleMock("../../src/token/services/wallet.service", {
+vi.mock("../../src/token/services/wallet.service", () => ({
   getWalletForSigning: mockGetWalletForSigning,
-});
+}));
 
 import {
   buildOfferAmounts,
@@ -21,17 +21,17 @@ import {
 
 describe("dex.service", () => {
   const mockClient = {
-    autofill: createJestMock(),
-    submit: createJestMock(),
-    request: createJestMock(),
+    autofill: vi.fn(),
+    submit: vi.fn(),
+    request: vi.fn(),
   };
 
   const mockWallet = {
-    sign: createJestMock(),
+    sign: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGetClient.mockResolvedValue(mockClient);
     mockGetWalletForSigning.mockResolvedValue(mockWallet);
     mockClient.autofill.mockImplementation(async (tx: any) => ({ ...tx, Sequence: 100, Fee: "12" }));

@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 import { mockIdentityPlatformAuth } from "../utils/mock.index";
 
-const mockVerifyMfaToken = jest.fn();
-jest.mock("../../src/token/services/mfa-token.service", () => ({
+const mockVerifyMfaToken = vi.hoisted(() => vi.fn());
+vi.mock("../../src/token/services/mfa-token.service", () => ({
   verifyMfaToken: mockVerifyMfaToken,
 }));
 
@@ -25,10 +25,10 @@ describe("requireAuth middleware", () => {
 
     mockReq = { headers: {} };
     mockRes = {
-      status: jest.fn().mockReturnThis() as any,
-      json: jest.fn().mockReturnThis() as any,
+      status: vi.fn().mockReturnThis() as any,
+      json: vi.fn().mockReturnThis() as any,
     };
-    mockNext = jest.fn();
+    mockNext = vi.fn();
   });
 
   afterEach(() => {
@@ -129,10 +129,10 @@ describe("requireMfa middleware", () => {
   beforeEach(() => {
     mockReq = { headers: {} };
     mockRes = {
-      status: jest.fn().mockReturnThis() as any,
-      json: jest.fn().mockReturnThis() as any,
+      status: vi.fn().mockReturnThis() as any,
+      json: vi.fn().mockReturnThis() as any,
     };
-    mockNext = jest.fn();
+    mockNext = vi.fn();
   });
 
   it("should return 403 if MFA not verified", () => {
@@ -172,10 +172,10 @@ describe("requireKyc middleware", () => {
   beforeEach(() => {
     mockReq = { headers: {} };
     mockRes = {
-      status: jest.fn().mockReturnThis() as any,
-      json: jest.fn().mockReturnThis() as any,
+      status: vi.fn().mockReturnThis() as any,
+      json: vi.fn().mockReturnThis() as any,
     };
-    mockNext = jest.fn();
+    mockNext = vi.fn();
   });
 
   it("should return 403 if KYC not approved", () => {
@@ -221,10 +221,10 @@ describe("requireOperationMfa middleware", () => {
       headers: {},
     };
     mockRes = {
-      status: jest.fn().mockReturnThis() as any,
-      json: jest.fn().mockReturnThis() as any,
+      status: vi.fn().mockReturnThis() as any,
+      json: vi.fn().mockReturnThis() as any,
     };
-    mockNext = jest.fn();
+    mockNext = vi.fn();
   });
 
   it("should return 403 if no X-MFA-Token header", async () => {

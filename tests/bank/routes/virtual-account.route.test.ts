@@ -9,16 +9,36 @@ import {
   TEST_VIRTUAL_ACCOUNT_ID,
 } from "../utils/data";
 import { mockBankAuth } from "../utils/mock.bank-auth";
-import {
-  enableAccountServiceMock,
-  enableVirtualAccountServiceMock,
-  mockAccountService,
-  mockVirtualAccountService,
-} from "../utils/mock.bank-services";
+import { mockAccountService, mockVirtualAccountService } from "../utils/mock.bank-services";
 import { BankRestTestHelper, createBankTestApp } from "../utils/server.rest";
 
-enableAccountServiceMock();
-enableVirtualAccountServiceMock();
+vi.mock("@bank/middleware/bank-auth.js", async () => {
+  const { mockBankAuth } = await import("../utils/mock.bank-auth");
+  return {
+    requireBankAuth: mockBankAuth.requireBankAuth,
+    rejectApiToken: mockBankAuth.rejectApiToken,
+    generateToken: mockBankAuth.generateToken,
+    generateApiToken: mockBankAuth.generateApiToken,
+    verifyToken: mockBankAuth.verifyToken,
+  };
+});
+
+vi.mock("@bank/services/account.service.js", async () => {
+  const { mockAccountService } = await import("../utils/mock.bank-services");
+  return {
+    getAccountById: mockAccountService.getAccountById,
+  };
+});
+
+vi.mock("@bank/services/virtual-account.service.js", async () => {
+  const { mockVirtualAccountService } = await import("../utils/mock.bank-services");
+  return {
+    createVirtualAccount: mockVirtualAccountService.createVirtualAccount,
+    listVirtualAccounts: mockVirtualAccountService.listVirtualAccounts,
+    getVirtualAccountById: mockVirtualAccountService.getVirtualAccountById,
+    updateVirtualAccount: mockVirtualAccountService.updateVirtualAccount,
+  };
+});
 
 describe("Bank Virtual Account Routes - REST API Integration", () => {
   let app: express.Application;

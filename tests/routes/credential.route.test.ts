@@ -5,10 +5,10 @@ import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.in
 import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
 
 // Mock credential.service
-const mockGetCredentialStatus = jest.fn();
-const mockIssueCredential = jest.fn();
-const mockAcceptCredential = jest.fn();
-jest.mock("../../src/token/services/credential.service", () => ({
+const mockGetCredentialStatus = vi.fn();
+const mockIssueCredential = vi.fn();
+const mockAcceptCredential = vi.fn();
+vi.mock("../../src/token/services/credential.service", () => ({
   getCredentialStatus: (...args: any[]) => mockGetCredentialStatus(...args),
   issueCredential: (...args: any[]) => mockIssueCredential(...args),
   acceptCredential: (...args: any[]) => mockAcceptCredential(...args),
@@ -16,37 +16,37 @@ jest.mock("../../src/token/services/credential.service", () => ({
 }));
 
 // Mock wallet.service
-jest.mock("../../src/token/services/wallet.service", () => ({
-  deriveWallet: jest.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
-  getWalletForSigning: jest.fn().mockResolvedValue({ sign: jest.fn() }),
-  allocateXrpAddressIndex: jest.fn().mockResolvedValue(1),
+vi.mock("../../src/token/services/wallet.service", () => ({
+  deriveWallet: vi.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
+  getWalletForSigning: vi.fn().mockResolvedValue({ sign: vi.fn() }),
+  allocateXrpAddressIndex: vi.fn().mockResolvedValue(1),
 }));
 
 // Mock faucet.service
-jest.mock("../../src/token/services/faucet.service", () => ({
-  fundAccount: jest.fn().mockResolvedValue({ balance: 1000 }),
+vi.mock("../../src/token/services/faucet.service", () => ({
+  fundAccount: vi.fn().mockResolvedValue({ balance: 1000 }),
 }));
 
 // Mock trustline.service
-jest.mock("../../src/token/services/trustline.service", () => ({
-  hasTrustLine: jest.fn().mockResolvedValue(false),
-  setTrustLine: jest.fn().mockResolvedValue("mock-trustline-tx-hash"),
-  ensureTrustLine: jest.fn().mockResolvedValue(undefined),
+vi.mock("../../src/token/services/trustline.service", () => ({
+  hasTrustLine: vi.fn().mockResolvedValue(false),
+  setTrustLine: vi.fn().mockResolvedValue("mock-trustline-tx-hash"),
+  ensureTrustLine: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock dex.service
-jest.mock("../../src/token/services/dex.service", () => ({
-  createPermissionedOffer: jest.fn(),
-  cancelOffer: jest.fn(),
-  getPermissionedOrderBook: jest.fn(),
-  buildOfferAmounts: jest.fn(),
+vi.mock("../../src/token/services/dex.service", () => ({
+  createPermissionedOffer: vi.fn(),
+  cancelOffer: vi.fn(),
+  getPermissionedOrderBook: vi.fn(),
+  buildOfferAmounts: vi.fn(),
   tfHybrid: 0x00800000,
 }));
 
 // Mock bank config
-jest.mock("../../src/token/config/bank", () => ({
-  getBankServiceUrl: jest.fn().mockReturnValue("http://mock-bank-service"),
-  getBankAuthToken: jest.fn().mockResolvedValue("mock-bank-auth-token"),
+vi.mock("../../src/token/config/bank", () => ({
+  getBankServiceUrl: vi.fn().mockReturnValue("http://mock-bank-service"),
+  getBankAuthToken: vi.fn().mockResolvedValue("mock-bank-auth-token"),
 }));
 
 describe("Credential Routes - REST API Integration", () => {

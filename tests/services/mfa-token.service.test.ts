@@ -47,7 +47,7 @@ describe("mfa-token.service", () => {
     it("should reject expired token", async () => {
       const originalDateNow = Date.now;
       const pastTime = Date.now() - 400 * 1000; // 400 seconds ago
-      Date.now = jest.fn().mockReturnValue(pastTime);
+      Date.now = vi.fn().mockReturnValue(pastTime);
       const token = await generateMfaToken(testUid);
       Date.now = originalDateNow;
 

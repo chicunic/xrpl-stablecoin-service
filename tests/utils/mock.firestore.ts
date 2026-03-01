@@ -1,21 +1,24 @@
-import { createJestMock, createSimpleModuleMock } from "./mock.factory";
+const mockFirebaseConfig = vi.hoisted(() => ({
+  initializeFirebase: vi.fn(),
+  getFirestore: vi.fn(),
+}));
 
-const mockFirebaseConfig = {
-  initializeFirebase: createJestMock(),
-  getFirestore: createJestMock(),
-};
+vi.mock("../../src/common/config/firebase", () => ({
+  initializeFirebase: mockFirebaseConfig.initializeFirebase,
+  getFirestore: mockFirebaseConfig.getFirestore,
+}));
 
 export const mockFirestoreService = {
-  doc: createJestMock(),
-  collection: createJestMock(),
-  collectionGroup: createJestMock(),
-  get: createJestMock(),
-  set: createJestMock(),
-  update: createJestMock(),
-  where: createJestMock(),
-  orderBy: createJestMock(),
-  limit: createJestMock(),
-  runTransaction: createJestMock(),
+  doc: vi.fn(),
+  collection: vi.fn(),
+  collectionGroup: vi.fn(),
+  get: vi.fn(),
+  set: vi.fn(),
+  update: vi.fn(),
+  where: vi.fn(),
+  orderBy: vi.fn(),
+  limit: vi.fn(),
+  runTransaction: vi.fn(),
   setup: () => {
     mockFirebaseConfig.initializeFirebase.mockImplementation(() => {
       // no-op in tests
@@ -74,8 +77,8 @@ export const mockFirestoreService = {
     mockFirestoreService.runTransaction.mockImplementation(async (fn: any) => {
       const tx = {
         get: mockFirestoreService.get,
-        set: jest.fn(),
-        update: jest.fn(),
+        set: vi.fn(),
+        update: vi.fn(),
       };
       return fn(tx);
     });
@@ -95,8 +98,3 @@ export const mockFirestoreService = {
     mockFirestoreService.runTransaction.mockReset();
   },
 };
-
-createSimpleModuleMock("../../src/common/config/firebase", {
-  initializeFirebase: mockFirebaseConfig.initializeFirebase,
-  getFirestore: mockFirebaseConfig.getFirestore,
-});

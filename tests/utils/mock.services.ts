@@ -1,12 +1,10 @@
-import { createJestMock, createSimpleModuleMock } from "./mock.factory";
-
 export const mockXrplService = {
-  sendToken: createJestMock(),
-  sendTokenFromUser: createJestMock(),
-  sendXrpFromUser: createJestMock(),
-  getBalances: createJestMock(),
-  getClient: createJestMock(),
-  disconnect: createJestMock(),
+  sendToken: vi.fn(),
+  sendTokenFromUser: vi.fn(),
+  sendXrpFromUser: vi.fn(),
+  getBalances: vi.fn(),
+  getClient: vi.fn(),
+  disconnect: vi.fn(),
   setup: () => {
     mockXrplService.sendToken.mockResolvedValue("mock-tx-hash-123");
     mockXrplService.sendTokenFromUser.mockResolvedValue("mock-tx-hash-123");
@@ -26,8 +24,8 @@ export const mockXrplService = {
 };
 
 export const mockKmsService = {
-  signWithKms: createJestMock(),
-  getPublicKey: createJestMock(),
+  signWithKms: vi.fn(),
+  getPublicKey: vi.fn(),
   setup: () => {
     mockKmsService.signWithKms.mockResolvedValue("mock-signature");
     mockKmsService.getPublicKey.mockResolvedValue("mock-public-key");
@@ -39,13 +37,13 @@ export const mockKmsService = {
 };
 
 export const mockWalletService = {
-  deriveWallet: createJestMock(),
-  getWalletForSigning: createJestMock(),
-  allocateXrpAddressIndex: createJestMock(),
+  deriveWallet: vi.fn(),
+  getWalletForSigning: vi.fn(),
+  allocateXrpAddressIndex: vi.fn(),
   setup: () => {
     mockWalletService.deriveWallet.mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" });
     mockWalletService.getWalletForSigning.mockResolvedValue({
-      sign: jest.fn().mockReturnValue({ tx_blob: "mock-blob", hash: "mock-hash" }),
+      sign: vi.fn().mockReturnValue({ tx_blob: "mock-blob", hash: "mock-hash" }),
     });
     mockWalletService.allocateXrpAddressIndex.mockResolvedValue(1);
   },
@@ -57,7 +55,7 @@ export const mockWalletService = {
 };
 
 export const mockFaucetService = {
-  fundAccount: createJestMock(),
+  fundAccount: vi.fn(),
   setup: () => {
     mockFaucetService.fundAccount.mockResolvedValue({ balance: 1000 });
   },
@@ -67,9 +65,9 @@ export const mockFaucetService = {
 };
 
 export const mockTrustlineService = {
-  hasTrustLine: createJestMock(),
-  setTrustLine: createJestMock(),
-  ensureTrustLine: createJestMock(),
+  hasTrustLine: vi.fn(),
+  setTrustLine: vi.fn(),
+  ensureTrustLine: vi.fn(),
   setup: () => {
     mockTrustlineService.hasTrustLine.mockResolvedValue(false);
     mockTrustlineService.setTrustLine.mockResolvedValue("mock-trustline-tx-hash");
@@ -81,50 +79,3 @@ export const mockTrustlineService = {
     mockTrustlineService.ensureTrustLine.mockReset();
   },
 };
-
-export function enableXrplServiceMock() {
-  createSimpleModuleMock("../../src/token/services/xrpl.service", {
-    sendToken: mockXrplService.sendToken,
-    sendTokenFromUser: mockXrplService.sendTokenFromUser,
-    sendXrpFromUser: mockXrplService.sendXrpFromUser,
-    getBalances: mockXrplService.getBalances,
-    getClient: mockXrplService.getClient,
-    disconnect: mockXrplService.disconnect,
-  });
-}
-
-export function enableFaucetServiceMock() {
-  createSimpleModuleMock("../../src/token/services/faucet.service", {
-    fundAccount: mockFaucetService.fundAccount,
-  });
-}
-
-export function enableTrustlineServiceMock() {
-  createSimpleModuleMock("../../src/token/services/trustline.service", {
-    hasTrustLine: mockTrustlineService.hasTrustLine,
-    setTrustLine: mockTrustlineService.setTrustLine,
-    ensureTrustLine: mockTrustlineService.ensureTrustLine,
-  });
-}
-
-export function enableWalletServiceMock() {
-  createSimpleModuleMock("../../src/token/services/wallet.service", {
-    deriveWallet: mockWalletService.deriveWallet,
-    getWalletForSigning: mockWalletService.getWalletForSigning,
-    allocateXrpAddressIndex: mockWalletService.allocateXrpAddressIndex,
-  });
-}
-
-export function enableKmsServiceMock() {
-  createSimpleModuleMock("../../src/token/services/kms.service", {
-    signWithKms: mockKmsService.signWithKms,
-    getPublicKey: mockKmsService.getPublicKey,
-  });
-}
-
-export function enableBankConfigMock() {
-  createSimpleModuleMock("../../src/token/config/bank", {
-    getBankServiceUrl: jest.fn().mockReturnValue("http://mock-bank-service"),
-    getBankAuthToken: jest.fn().mockResolvedValue("mock-bank-auth-token"),
-  });
-}
