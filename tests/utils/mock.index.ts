@@ -11,13 +11,13 @@ import {
 } from "./mock.services";
 
 export {
-  mockFirestoreService,
-  mockIdentityPlatformAuth,
-  mockXrplService,
-  mockKmsService,
-  mockWalletService,
   mockFaucetService,
-  mockTrustlineService,
-  mockPubSubService,
+  mockFirestoreService,
   mockIdempotency,
+  mockIdentityPlatformAuth,
+  mockKmsService,
+  mockPubSubService,
+  mockTrustlineService,
+  mockWalletService,
+  mockXrplService,
 };

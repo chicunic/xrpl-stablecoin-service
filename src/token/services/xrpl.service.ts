@@ -15,7 +15,7 @@ const XRPL_URL =
 let client: Client | null = null;
 
 export async function getClient(): Promise<Client> {
-  if (!client || !client.isConnected()) {
+  if (!client?.isConnected()) {
     client = new Client(XRPL_URL);
     await client.connect();
   }

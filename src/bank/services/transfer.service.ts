@@ -99,7 +99,7 @@ export async function transfer(
 
   if (!toAccount) {
     const virtualAccount = await getVirtualAccountByBranchAndNumber(toBranchCode, toAccountNumber);
-    if (!virtualAccount || !virtualAccount.isActive) {
+    if (!virtualAccount?.isActive) {
       throw new ValidationError("Invalid: destination account not found");
     }
     const parentAccount = await getAccountById(virtualAccount.parentAccountId);
