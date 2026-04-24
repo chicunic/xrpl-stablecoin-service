@@ -4,8 +4,8 @@ import { getTokenConfig } from "@token/config/tokens.js";
 import { getProjectAuth } from "@token/middleware/auth.js";
 import { getUserWallet } from "@token/services/auth.service.js";
 import {
-  acceptCredential,
   CREDENTIAL_TYPE_KYC_JAPAN_HEX,
+  acceptCredential,
   issueCredential,
 } from "@token/services/credential.service.js";
 import type { KycInfo } from "@token/types/user.type.js";
@@ -44,10 +44,6 @@ function validateKycInput(input: SubmitKycInput): void {
     throw new ValidationError("city is required");
   }
 
-  if (input.town == null) {
-    throw new ValidationError("town is required");
-  }
-
   if (!input.address || input.address.trim().length === 0) {
     throw new ValidationError("address is required");
   }
@@ -64,7 +60,7 @@ export async function submitKyc(uid: string, input: SubmitKycInput): Promise<Kyc
     throw new NotFoundError("User not found");
   }
 
-  const user = userDoc.data()!;
+  const user = userDoc.data() as FirebaseFirestore.DocumentData;
   if (user.kycStatus === "approved") {
     throw new ConflictError("KYC already approved");
   }

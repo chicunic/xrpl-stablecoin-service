@@ -30,7 +30,7 @@ function sign(payload: string, secret: string): string {
   return createHmac("sha256", secret).update(payload).digest("base64url");
 }
 
-export async function generateToken(accountId: string): Promise<string> {
+export function generateToken(accountId: string): string {
   const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const payload = base64UrlEncode(
     JSON.stringify({
@@ -39,11 +39,11 @@ export async function generateToken(accountId: string): Promise<string> {
       exp: Math.floor(Date.now() / 1000) + 86400, // 24 hours
     }),
   );
-  const signature = sign(`${header}.${payload}`, await getJwtSecret());
+  const signature = sign(`${header}.${payload}`, getJwtSecret());
   return `${header}.${payload}.${signature}`;
 }
 
-export async function generateApiToken(accountId: string): Promise<string> {
+export function generateApiToken(accountId: string): string {
   const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const payload = base64UrlEncode(
     JSON.stringify({
@@ -52,18 +52,18 @@ export async function generateApiToken(accountId: string): Promise<string> {
       iat: Math.floor(Date.now() / 1000),
     }),
   );
-  const signature = sign(`${header}.${payload}`, await getJwtSecret());
+  const signature = sign(`${header}.${payload}`, getJwtSecret());
   return `${header}.${payload}.${signature}`;
 }
 
-export async function verifyToken(token: string): Promise<{ accountId: string; tokenType: TokenType }> {
+export function verifyToken(token: string): { accountId: string; tokenType: TokenType } {
   const parts = token.split(".");
   if (parts.length !== 3) {
     throw new Error("Invalid token format");
   }
 
   const [header, payload, signature] = parts as [string, string, string];
-  const expectedSignature = sign(`${header}.${payload}`, await getJwtSecret());
+  const expectedSignature = sign(`${header}.${payload}`, getJwtSecret());
 
   const sigBuffer = Buffer.from(signature);
   const expectedBuffer = Buffer.from(expectedSignature);
@@ -85,7 +85,7 @@ export async function verifyToken(token: string): Promise<{ accountId: string; t
   return { accountId: decoded.accountId, tokenType: decoded.type === "api" ? "api" : "session" };
 }
 
-export async function requireBankAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+export function requireBankAuth(req: Request, res: Response, next: NextFunction): void {
   let token: string | undefined;
 
   const authHeader = req.headers.authorization;
@@ -99,7 +99,7 @@ export async function requireBankAuth(req: Request, res: Response, next: NextFun
   }
 
   try {
-    const decoded = await verifyToken(token);
+    const decoded = verifyToken(token);
     (req as BankAuthenticatedRequest).bankUser = {
       accountId: decoded.accountId,
       tokenType: decoded.tokenType,
@@ -110,7 +110,7 @@ export async function requireBankAuth(req: Request, res: Response, next: NextFun
   }
 }
 
-export async function rejectApiToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+export function rejectApiToken(req: Request, res: Response, next: NextFunction): void {
   const { tokenType } = (req as BankAuthenticatedRequest).bankUser;
   if (tokenType === "api") {
     res.status(403).json({ error: "API tokens are not allowed for this endpoint" });

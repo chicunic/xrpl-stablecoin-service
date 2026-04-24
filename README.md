@@ -54,10 +54,10 @@ The stablecoin core responsible for user onboarding, wallet provisioning, balanc
 
 XRPL transactions are signed using **ed25519**. The signing backend is configurable via `SIGNING_PROVIDER`:
 
-| Provider | Description |
-| --- | --- |
+| Provider                  | Description                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------- |
 | **Secret Manager** (`sm`) | Stores the issuer seed in Google Cloud Secret Manager; signing is performed in-process |
-| **Cloud KMS** (`kms`) | Delegates signing to Google Cloud KMS; the private key never leaves the HSM |
+| **Cloud KMS** (`kms`)     | Delegates signing to Google Cloud KMS; the private key never leaves the HSM            |
 
 The signing service uses lazy dynamic imports, loading only the selected provider at runtime.
 
@@ -76,54 +76,54 @@ The signing service uses lazy dynamic imports, loading only the selected provide
 
 ## Tech Stack
 
-| Layer | Technology |
-| --- | --- |
-| Runtime | Node.js (ESM) + TypeScript |
-| Framework | Express 5 |
-| Blockchain | XRPL (xrpl.js) |
-| Auth | Firebase Identity Platform |
-| Database | Cloud Firestore |
-| Messaging | Cloud Pub/Sub, Eventarc |
-| Secrets | Cloud Secret Manager, Cloud KMS |
-| Deployment | Cloud Run via Cloud Build |
-| API docs | OpenAPI 3.0 + Swagger UI |
-| Testing | Vitest + Supertest |
-| Linting | Biome |
+| Layer      | Technology                      |
+| ---------- | ------------------------------- |
+| Runtime    | Node.js (ESM) + TypeScript      |
+| Framework  | Express 5                       |
+| Blockchain | XRPL (xrpl.js)                  |
+| Auth       | Firebase Identity Platform      |
+| Database   | Cloud Firestore                 |
+| Messaging  | Cloud Pub/Sub, Eventarc         |
+| Secrets    | Cloud Secret Manager, Cloud KMS |
+| Deployment | Cloud Run via Cloud Build       |
+| API docs   | OpenAPI 3.0 + Swagger UI        |
+| Testing    | Vitest + Supertest              |
+| Linting    | Biome                           |
 
 ## API Surface
 
 ### Token Services
 
-| Method | Endpoint | Description |
-| - | - | - |
-| POST | `/api/v1/auth/session` | Create session from Firebase ID token |
-| GET | `/api/v1/users/me` | Get or create user profile |
-| POST | `/api/v1/users/me/wallet` | Provision XRPL wallet |
-| POST | `/api/v1/users/me/virtual-account` | Set up virtual bank account |
-| GET | `/api/v1/tokens` | List available stablecoins |
-| POST | `/api/v1/tokens/:id/trustline` | Establish TrustLine |
-| GET | `/api/v1/balance/fiat` | Fiat balance |
-| GET | `/api/v1/balance/tokens` | Token balances with TrustLine status |
-| POST | `/api/v1/exchange/fiat-to-xrp` | Mint tokens (fiat → token) |
-| POST | `/api/v1/exchange/xrp-to-fiat` | Burn tokens (token → fiat) |
-| POST | `/api/v1/withdraw/fiat` | Withdraw to bank account |
-| POST | `/api/v1/withdraw/xrp` | Withdraw tokens to external wallet |
-| `*` | `/api/v1/whitelist/*` | Manage withdrawal whitelists |
-| `*` | `/api/v1/kyc/*` | KYC verification |
-| `*` | `/api/v1/mfa/*` | MFA token management |
+| Method | Endpoint                           | Description                           |
+| ------ | ---------------------------------- | ------------------------------------- |
+| POST   | `/api/v1/auth/session`             | Create session from Firebase ID token |
+| GET    | `/api/v1/users/me`                 | Get or create user profile            |
+| POST   | `/api/v1/users/me/wallet`          | Provision XRPL wallet                 |
+| POST   | `/api/v1/users/me/virtual-account` | Set up virtual bank account           |
+| GET    | `/api/v1/tokens`                   | List available stablecoins            |
+| POST   | `/api/v1/tokens/:id/trustline`     | Establish TrustLine                   |
+| GET    | `/api/v1/balance/fiat`             | Fiat balance                          |
+| GET    | `/api/v1/balance/tokens`           | Token balances with TrustLine status  |
+| POST   | `/api/v1/exchange/fiat-to-xrp`     | Mint tokens (fiat → token)            |
+| POST   | `/api/v1/exchange/xrp-to-fiat`     | Burn tokens (token → fiat)            |
+| POST   | `/api/v1/withdraw/fiat`            | Withdraw to bank account              |
+| POST   | `/api/v1/withdraw/xrp`             | Withdraw tokens to external wallet    |
+| `*`    | `/api/v1/whitelist/*`              | Manage withdrawal whitelists          |
+| `*`    | `/api/v1/kyc/*`                    | KYC verification                      |
+| `*`    | `/api/v1/mfa/*`                    | MFA token management                  |
 
 ### Bank Services
 
-| Method | Endpoint | Description |
-| - | - | - |
-| POST | `/api/v1/accounts` | Open account |
-| POST | `/api/v1/accounts/login` | Authenticate |
-| GET | `/api/v1/accounts/me` | Account info |
-| POST | `/api/v1/transfers` | Transfer funds |
-| POST | `/api/v1/atm/deposit` | Cash deposit |
-| POST | `/api/v1/atm/withdrawal` | Cash withdrawal |
-| `*` | `/api/v1/accounts/me/virtual-accounts/*` | Virtual account management (corporate) |
-| GET | `/api/v1/transactions` | Transaction history |
+| Method | Endpoint                                 | Description                            |
+| ------ | ---------------------------------------- | -------------------------------------- |
+| POST   | `/api/v1/accounts`                       | Open account                           |
+| POST   | `/api/v1/accounts/login`                 | Authenticate                           |
+| GET    | `/api/v1/accounts/me`                    | Account info                           |
+| POST   | `/api/v1/transfers`                      | Transfer funds                         |
+| POST   | `/api/v1/atm/deposit`                    | Cash deposit                           |
+| POST   | `/api/v1/atm/withdrawal`                 | Cash withdrawal                        |
+| `*`    | `/api/v1/accounts/me/virtual-accounts/*` | Virtual account management (corporate) |
+| GET    | `/api/v1/transactions`                   | Transaction history                    |
 
 Both services expose interactive API documentation at `/api-docs`.
 

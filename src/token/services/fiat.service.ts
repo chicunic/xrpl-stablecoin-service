@@ -14,7 +14,7 @@ export async function getFiatBalance(userId: string): Promise<number> {
     throw new NotFoundError("User not found");
   }
 
-  return (userDoc.data()?.fiatBalance as number) ?? 0;
+  return ((userDoc.data() as FirebaseFirestore.DocumentData).fiatBalance as number | undefined) ?? 0;
 }
 
 async function executeFiatTransaction(
@@ -40,7 +40,7 @@ async function executeFiatTransaction(
       throw new NotFoundError("User not found");
     }
 
-    const currentBalance = (userDoc.data()?.fiatBalance as number) ?? 0;
+    const currentBalance = ((userDoc.data() as FirebaseFirestore.DocumentData).fiatBalance as number | undefined) ?? 0;
 
     if (direction === "debit" && currentBalance < amount) {
       throw new ValidationError("Invalid: insufficient fiat balance");

@@ -19,12 +19,12 @@ vi.mock("../../src/token/services/wallet.service", () => ({
 
 vi.mock("xrpl", async () => ({
   ...(await vi.importActual("xrpl")),
-  encodeForSigning: (...args: any[]) => mockEncodeForSigning(...args),
+  encodeForSigning: (...args: unknown[]) => mockEncodeForSigning(...args) as unknown,
 }));
 
 import {
-  acceptCredential,
   CREDENTIAL_TYPE_KYC_JAPAN_HEX,
+  acceptCredential,
   getCredentialStatus,
   issueCredential,
   revokeCredential,
@@ -45,9 +45,11 @@ describe("credential.service", () => {
     vi.clearAllMocks();
     mockGetClient.mockResolvedValue(mockClient);
     mockSignWithKms.mockResolvedValue("mock-signature");
-    mockGetWalletForSigning.mockResolvedValue(mockWallet);
+    mockGetWalletForSigning.mockReturnValue(mockWallet);
     mockEncodeForSigning.mockReturnValue("AABBCCDD");
-    mockClient.autofill.mockImplementation(async (tx: any) => ({ ...tx, Sequence: 1, Fee: "12" }));
+    mockClient.autofill.mockImplementation((tx: Record<string, unknown>) =>
+      Promise.resolve({ ...tx, Sequence: 1, Fee: "12" }),
+    );
   });
 
   describe("issueCredential", () => {

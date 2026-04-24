@@ -1,3 +1,4 @@
+import type { Request, Response } from "express";
 import type express from "express";
 import { ValidationError } from "../../../src/common/utils/error.handler";
 import { restAssert } from "../../utils/helpers";
@@ -68,9 +69,10 @@ describe("Bank Account Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response, 201);
-      expect(response.body.accountId).toBe(MOCK_BANK_ACCOUNT_SAFE.accountId);
-      expect(response.body.accountNumber).toBe(MOCK_BANK_ACCOUNT_SAFE.accountNumber);
-      expect(response.body.pin).toBeUndefined();
+      const body = response.body as { accountId: string; accountNumber: string; pin?: string };
+      expect(body.accountId).toBe(MOCK_BANK_ACCOUNT_SAFE.accountId);
+      expect(body.accountNumber).toBe(MOCK_BANK_ACCOUNT_SAFE.accountNumber);
+      expect(body.pin).toBeUndefined();
     });
 
     it("should return 400 for missing fields", async () => {
@@ -83,7 +85,7 @@ describe("Bank Account Routes - REST API Integration", () => {
   describe("POST /api/v1/accounts/login", () => {
     it("should login with valid credentials", async () => {
       mockAccountService.login.mockResolvedValue(MOCK_BANK_ACCOUNT);
-      mockBankAuth.generateToken.mockResolvedValue("mock-jwt-token");
+      mockBankAuth.generateToken.mockReturnValue("mock-jwt-token");
 
       const response = await helper.post("/api/v1/accounts/login", {
         branchCode: TEST_BANK_BRANCH_CODE,
@@ -92,9 +94,10 @@ describe("Bank Account Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response);
-      expect(response.body.token).toBe("mock-jwt-token");
-      expect(response.body.account).toBeDefined();
-      expect(response.body.account.pin).toBeUndefined();
+      const body = response.body as { token: string; account: { pin?: string } };
+      expect(body.token).toBe("mock-jwt-token");
+      expect(body.account).toBeDefined();
+      expect(body.account.pin).toBeUndefined();
     });
 
     it("should return 400 for invalid credentials", async () => {
@@ -125,8 +128,9 @@ describe("Bank Account Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response);
-      expect(response.body.accountHolder).toBe(TEST_BANK_ACCOUNT_HOLDER);
-      expect(response.body.bankCode).toBe("9999");
+      const body = response.body as { accountHolder: string; bankCode: string };
+      expect(body.accountHolder).toBe(TEST_BANK_ACCOUNT_HOLDER);
+      expect(body.bankCode).toBe("9999");
     });
 
     it("should return 404 for non-existent account", async () => {
@@ -146,7 +150,7 @@ describe("Bank Account Routes - REST API Integration", () => {
 
   describe("GET /api/v1/accounts/me", () => {
     it("should return 401 without auth header", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((_req: any, res: any) => {
+      mockBankAuth.requireBankAuth.mockImplementation((_req: Request, res: Response) => {
         res.status(401).json({ error: "Missing or invalid Authorization header" });
       });
 
@@ -156,7 +160,6 @@ describe("Bank Account Routes - REST API Integration", () => {
     });
 
     it("should return current account info", async () => {
-      const { pin: _, ...safeAccount } = MOCK_BANK_ACCOUNT;
       mockAccountService.getAccountById.mockResolvedValue(MOCK_BANK_ACCOUNT);
 
       const response = await helper.get("/api/v1/accounts/me", {
@@ -164,8 +167,9 @@ describe("Bank Account Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response);
-      expect(response.body.accountId).toBe(safeAccount.accountId);
-      expect(response.body.pin).toBeUndefined();
+      const body = response.body as { accountId: string; pin?: string };
+      expect(body.accountId).toBe(MOCK_BANK_ACCOUNT.accountId);
+      expect(body.pin).toBeUndefined();
     });
 
     it("should return 404 if account not found", async () => {
@@ -182,12 +186,13 @@ describe("Bank Account Routes - REST API Integration", () => {
   describe("POST /api/v1/accounts/me/api-token", () => {
     it("should generate API token for corporate account", async () => {
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
-      mockBankAuth.generateApiToken.mockResolvedValue("mock-api-token");
+      mockBankAuth.generateApiToken.mockReturnValue("mock-api-token");
 
       const response = await helper.post("/api/v1/accounts/me/api-token", {}, { Authorization: "Bearer mock-token" });
 
       restAssert.expectSuccess(response);
-      expect(response.body.token).toBe("mock-api-token");
+      const body = response.body as { token: string };
+      expect(body.token).toBe("mock-api-token");
     });
 
     it("should return 403 for personal account", async () => {
@@ -207,7 +212,7 @@ describe("Bank Account Routes - REST API Integration", () => {
     });
 
     it("should return 401 without auth", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((_req: any, res: any) => {
+      mockBankAuth.requireBankAuth.mockImplementation((_req: Request, res: Response) => {
         res.status(401).json({ error: "Missing or invalid Authorization header" });
       });
 
@@ -229,7 +234,8 @@ describe("Bank Account Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response);
-      expect(response.body.accountHolder).toBe("新しい名前");
+      const body = response.body as { accountHolder: string };
+      expect(body.accountHolder).toBe("新しい名前");
     });
 
     it("should change PIN with valid oldPin", async () => {
@@ -242,7 +248,8 @@ describe("Bank Account Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response);
-      expect(response.body.message).toBe("PIN updated successfully");
+      const body = response.body as { message: string };
+      expect(body.message).toBe("PIN updated successfully");
     });
 
     it("should return 400 when changing PIN without oldPin", async () => {
@@ -269,8 +276,7 @@ describe("Bank Account Routes - REST API Integration", () => {
 
     it("should enable pubsubEnabled for corporate account", async () => {
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
-      const updatedAccount = { ...MOCK_CORPORATE_ACCOUNT, pubsubEnabled: true };
-      const { pin: _, ...safe } = updatedAccount;
+      const { pin: _, ...safe } = { ...MOCK_CORPORATE_ACCOUNT, pubsubEnabled: true };
       mockAccountService.updateAccount.mockResolvedValue(safe);
 
       const response = await helper.patch(
@@ -280,7 +286,8 @@ describe("Bank Account Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response);
-      expect(response.body.pubsubEnabled).toBe(true);
+      const body = response.body as { pubsubEnabled: boolean };
+      expect(body.pubsubEnabled).toBe(true);
     });
 
     it("should return 403 when personal account sets pubsubEnabled", async () => {
@@ -302,7 +309,7 @@ describe("Bank Account Routes - REST API Integration", () => {
     });
 
     it("should return 401 without auth", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((_req: any, res: any) => {
+      mockBankAuth.requireBankAuth.mockImplementation((_req: Request, res: Response) => {
         res.status(401).json({ error: "Missing or invalid Authorization header" });
       });
 

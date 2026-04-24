@@ -6,7 +6,7 @@ import { getTokenConfig } from "@token/config/tokens.js";
 import { getPublicKey, signWithKms } from "@token/services/kms-sm.service.js";
 import { deriveAddress, verify } from "ripple-keypairs";
 import type { AccountSet } from "xrpl";
-import { encodeForSigning, Wallet } from "xrpl";
+import { Wallet, encodeForSigning } from "xrpl";
 import ECDSA from "xrpl/dist/npm/ECDSA.js";
 
 const SEED = process.env.TEST_ISSUER_SEED ?? "";
@@ -74,7 +74,7 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   console.error("Test failed:", err);
   process.exit(1);
 });

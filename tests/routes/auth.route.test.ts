@@ -8,7 +8,7 @@ import {
 } from "../utils/data";
 import { restAssert } from "../utils/helpers";
 import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.index";
-import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
+import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
 
 // Mock wallet.service to avoid real Secret Manager calls
 vi.mock("../../src/token/services/wallet.service", () => ({
@@ -38,14 +38,14 @@ vi.mock("../../src/token/config/bank", () => ({
 // Mock global fetch for bank API calls
 const mockFetch = vi.fn().mockResolvedValue({
   ok: true,
-  json: async () => ({
+  json: () => Promise.resolve({
     bankCode: "9999",
     branchCode: "001",
     accountNumber: "0010001",
     accountHolder: "Mock User",
   }),
 });
-global.fetch = mockFetch as unknown as typeof fetch;
+global.fetch = mockFetch;
 
 describe("Auth Routes - REST API Integration", () => {
   let app: express.Application;
@@ -94,9 +94,10 @@ describe("Auth Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response);
-      expect(response.body.uid).toBe(TEST_USER_UID);
-      expect(response.body.email).toBe(TEST_USER_EMAIL);
-      expect(response.body.fiatBalance).toBeDefined();
+      const body = response.body as { uid: string; email: string; fiatBalance: number };
+      expect(body.uid).toBe(TEST_USER_UID);
+      expect(body.email).toBe(TEST_USER_EMAIL);
+      expect(body.fiatBalance).toBeDefined();
     });
 
     it("should create basic user record without wallet on first call", async () => {
@@ -138,7 +139,8 @@ describe("Auth Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response, 201);
-      expect(response.body.address).toBeDefined();
+      const body = response.body as { address: string };
+      expect(body.address).toBeDefined();
       expect(mockFirestoreService.set).toHaveBeenCalled();
     });
 
@@ -183,9 +185,10 @@ describe("Auth Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response, 201);
-      expect(response.body.branchCode).toBeDefined();
-      expect(response.body.accountNumber).toBeDefined();
-      expect(response.body.bankCode).toBeDefined();
+      const vaBody = response.body as { branchCode: string; accountNumber: string; bankCode: string };
+      expect(vaBody.branchCode).toBeDefined();
+      expect(vaBody.accountNumber).toBeDefined();
+      expect(vaBody.bankCode).toBeDefined();
       expect(mockFirestoreService.set).toHaveBeenCalled();
     });
 

@@ -21,7 +21,7 @@ async function getIssuerWallet(secretPath: string): Promise<Wallet> {
     throw new Error("Failed to retrieve issuer seed from Secret Manager");
   }
 
-  const resolvedSeed = typeof payload === "string" ? payload : new TextDecoder().decode(payload as Uint8Array);
+  const resolvedSeed = typeof payload === "string" ? payload : new TextDecoder().decode(payload);
   cachedWallet = Wallet.fromSeed(resolvedSeed.trim(), { algorithm: ECDSA.ed25519 });
   return cachedWallet;
 }

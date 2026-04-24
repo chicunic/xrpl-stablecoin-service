@@ -11,11 +11,12 @@ interface BankDepositEvent {
   virtualAccountNumber: string;
 }
 
-router.post("/pubsub/bank/deposit", async (req: Request, res: Response) => {
+router.post("/pubsub/bank/deposit", async (req: Request, res: Response<unknown>) => {
   let messageId: string | undefined;
   try {
-    const { data, messageId: msgId } = parsePubSubMessage<BankDepositEvent>(req.body);
-    messageId = msgId;
+    const parsed = parsePubSubMessage(req.body);
+    const data = parsed.data as BankDepositEvent;
+    messageId = parsed.messageId;
 
     const { transactionId, amount, virtualAccountNumber } = data;
     if (!transactionId || !amount || !virtualAccountNumber) {
@@ -32,7 +33,7 @@ router.post("/pubsub/bank/deposit", async (req: Request, res: Response) => {
       res.status(200).json({ status: "skipped", reason: "validation error" });
       return;
     }
-    console.error(`Pub/Sub bank deposit processing error (messageId: ${messageId}):`, error);
+    console.error(`Pub/Sub bank deposit processing error (messageId: ${messageId ?? ""}):`, error);
     res.status(500).json({ error: "Processing failed" });
   }
 });

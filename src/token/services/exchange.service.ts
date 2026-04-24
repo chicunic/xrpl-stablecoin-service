@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { getFirestore } from "@common/config/firebase.js";
 import { NotFoundError } from "@common/utils/error.handler.js";
-import { getTokenConfig, type TokenConfig } from "@token/config/tokens.js";
+import { type TokenConfig, getTokenConfig } from "@token/config/tokens.js";
 import { getUserWallet } from "@token/services/auth.service.js";
 import { creditFiat, debitFiat } from "@token/services/fiat.service.js";
 import { createTrustlineDoc, recordXrpTransaction } from "@token/services/token-balance.service.js";

@@ -37,7 +37,7 @@ async function step1FundIssuer(): Promise<void> {
 
   console.log("Account not found. Funding via testnet faucet...");
   const result = await fundAccount(tokenConfig.issuerAddress);
-  console.log(`Funded. Balance: ${result.balance}`);
+  console.log(`Funded. Balance: ${String(result.balance)}`);
 }
 
 async function step2AccountSet(): Promise<void> {
@@ -53,7 +53,7 @@ async function step2AccountSet(): Promise<void> {
   const domainHex = Buffer.from(tokenConfig.domain).toString("hex").toUpperCase();
   const existingDomain = (accountData.Domain ?? "").toUpperCase();
   // lsfDefaultRipple = 0x00800000
-  const hasDefaultRipple = ((accountData.Flags ?? 0) & 0x00800000) !== 0;
+  const hasDefaultRipple = (accountData.Flags & 0x00800000) !== 0;
 
   if (existingDomain === domainHex && hasDefaultRipple) {
     console.log(`Already set. Domain="${tokenConfig.domain}", DefaultRipple=true`);
@@ -85,7 +85,7 @@ async function step2AccountSet(): Promise<void> {
     throw new Error(`AccountSet failed: ${result.result.engine_result_message}`);
   }
 
-  console.log(`AccountSet submitted. Hash: ${result.result.tx_json?.hash ?? "unknown"}`);
+  console.log(`AccountSet submitted. Hash: ${result.result.tx_json.hash ?? "unknown"}`);
 }
 
 async function main(): Promise<void> {
@@ -100,7 +100,7 @@ async function main(): Promise<void> {
   console.log("\nSetup complete.");
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error("Setup failed:", error);
   process.exit(1);
 });

@@ -5,18 +5,19 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "rm -rf dist && tsc && tsc-alias",
+    "build": "rm -rf dist && tsc -b tsconfig.src.json && tsc-alias -p tsconfig.src.json",
     "start": "node dist/${SERVICE:-token}/index.js",
     "start:token": "node dist/token/index.js",
     "start:bank": "node dist/bank/index.js",
     "dev:token": "tsx watch src/token/index.ts",
     "dev:bank": "tsx watch src/bank/index.ts",
-    "check": "tsc --noEmit && biome check",
-    "fix": "biome check --write --unsafe",
+    "check": "tsc -b --noEmit && eslint . && prettier --check .",
+    "fix": "eslint . --fix && prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:integration": "XRPL_NETWORK=devnet SIGNING_PROVIDER=sm vitest run --config vitest.integration.config.ts"
+    "test:integration": "XRPL_NETWORK=devnet SIGNING_PROVIDER=sm vitest run --config vitest.integration.config.ts",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=24"
@@ -26,41 +27,54 @@
     "@google-cloud/pubsub": "^5.3.0",
     "@google-cloud/secret-manager": "^6.1.1",
     "cors": "^2.8.6",
-    "dotenv": "^17.4.1",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-openapi-validator": "^5.6.2",
-    "firebase-admin": "^13.7.0",
+    "firebase-admin": "^13.8.0",
     "google-auth-library": "^10.6.2",
     "helmet": "^8.1.0",
     "jsqr": "^1.4.0",
     "multer": "^2.1.1",
-    "pdf-to-img": "^5.0.0",
+    "pdf-to-img": "^6.0.0",
     "pngjs": "^7.0.0",
     "ripple-keypairs": "^2.0.0",
     "swagger-ui-express": "^5.0.1",
     "xrpl": "^4.6.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.10",
+    "@eslint/js": "^10.0.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.1.0",
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.6.0",
     "@types/pngjs": "^6.0.5",
     "@types/supertest": "^7.2.0",
     "@types/swagger-ui-express": "^4.1.8",
+    "@vitest/eslint-plugin": "^1.6.16",
     "bip39": "^3.1.0",
+    "eslint": "^10.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "jiti": "^2.6.1",
+    "prettier": "^3.8.3",
     "supertest": "^7.2.2",
-    "vitest": "^4.1.3",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.0",
+    "vitest": "^4.1.5"
   },
-  "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319",
+  "packageManager": "pnpm@10.33.2+sha512.a90faf6feeab71ad6c6e57f94e0fe1a12f5dcc22cd754db40ae9593eb6a3e0b6b12e3540218bb37ae083404b1f2ce6db2a4121e979829b4aff94b99f49da1cf8",
   "pnpm": {
     "overrides": {
       "vite": "^8.0.7",
       "http-proxy-agent": ">=7.0.0"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@firebase/util",
+      "@scarf/scarf",
+      "esbuild",
+      "protobufjs"
+    ]
   }
 }

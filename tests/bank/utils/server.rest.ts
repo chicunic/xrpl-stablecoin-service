@@ -18,8 +18,14 @@ function createBankTestAppWithValidation(): express.Application {
   return app;
 }
 
+interface HttpError {
+  status?: number;
+  message?: string;
+  errors?: unknown;
+}
+
 function addErrorHandlingToTestApp(app: express.Application): void {
-  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  app.use((err: HttpError, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     if (err.status && err.status < 500) {
       res.status(err.status).json({
         error: err.message,
@@ -63,16 +69,16 @@ export class BankRestTestHelper {
     return request(this.app);
   }
 
-  async post<TResponse = any>(
+  async post(
     url: string,
-    data: any,
+    data: Record<string, unknown>,
     headers?: Record<string, string>,
-  ): Promise<Response & { body: TResponse }> {
+  ): Promise<Response> {
     const req = this.request.post(url).send(data);
     if (headers) {
       for (const [key, value] of Object.entries(headers)) req.set(key, value);
     }
-    return req as Promise<Response & { body: TResponse }>;
+    return req;
   }
 
   async get(url: string, headers?: Record<string, string>) {
@@ -83,15 +89,15 @@ export class BankRestTestHelper {
     return req;
   }
 
-  async patch<TResponse = any>(
+  async patch(
     url: string,
-    data: any,
+    data: Record<string, unknown>,
     headers?: Record<string, string>,
-  ): Promise<Response & { body: TResponse }> {
+  ): Promise<Response> {
     const req = this.request.patch(url).send(data);
     if (headers) {
       for (const [key, value] of Object.entries(headers)) req.set(key, value);
     }
-    return req as Promise<Response & { body: TResponse }>;
+    return req;
   }
 }

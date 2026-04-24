@@ -37,9 +37,9 @@ vi.mock("../../src/token/services/trustline.service", () => ({
   ensureTrustLine: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
+import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
 
-function createPubSubEnvelope(data: Record<string, unknown>, messageId = "test-msg-123"): object {
+function createPubSubEnvelope(data: Record<string, unknown>, messageId = "test-msg-123"): Record<string, unknown> {
   const encoded = Buffer.from(JSON.stringify(data)).toString("base64");
   return {
     message: {
@@ -108,7 +108,8 @@ describe("Pub/Sub Routes - REST API Integration", () => {
       const response = await helper.post("/api/v1/pubsub/bank/deposit", envelope);
 
       restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("ok");
+      const body = response.body as { status: string };
+      expect(body.status).toBe("ok");
     });
 
     it("should skip duplicate message (idempotency)", async () => {
@@ -151,7 +152,8 @@ describe("Pub/Sub Routes - REST API Integration", () => {
       const response = await helper.post("/api/v1/pubsub/bank/deposit", envelope);
 
       restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("ok");
+      const body = response.body as { status: string };
+      expect(body.status).toBe("ok");
     });
 
     it("should return 200 for invalid data in envelope (avoid infinite retry)", async () => {
@@ -160,7 +162,8 @@ describe("Pub/Sub Routes - REST API Integration", () => {
       const response = await helper.post("/api/v1/pubsub/bank/deposit", envelope);
 
       restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("skipped");
+      const body = response.body as { status: string };
+      expect(body.status).toBe("skipped");
     });
 
     it("should return 500 on processing error (trigger Pub/Sub retry)", async () => {

@@ -26,7 +26,7 @@ export async function setTrustLine(
   limit: string = DEFAULT_LIMIT,
 ): Promise<string> {
   const client = await getClient();
-  const wallet = await getWalletForSigning(xrpAddressIndex);
+  const wallet = getWalletForSigning(xrpAddressIndex);
 
   const trustSet: TrustSet = {
     TransactionType: "TrustSet",
@@ -46,7 +46,7 @@ export async function setTrustLine(
     throw new Error(`TrustSet failed: ${result.result.engine_result_message}`);
   }
 
-  return result.result.tx_json?.hash ?? "";
+  return result.result.tx_json.hash ?? "";
 }
 
 export async function ensureTrustLine(

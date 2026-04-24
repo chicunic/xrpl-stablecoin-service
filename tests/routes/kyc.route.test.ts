@@ -2,7 +2,7 @@ import type express from "express";
 import { MOCK_KYC_DOC, MOCK_USER_DOC_BASE } from "../utils/data";
 import { restAssert } from "../utils/helpers";
 import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.index";
-import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
+import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
 
 // Mock wallet.service to avoid real Secret Manager calls
 vi.mock("../../src/token/services/wallet.service", () => ({
@@ -92,8 +92,9 @@ describe("KYC Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response, 201);
-      expect(response.body.fullName).toBe("山田 太郎");
-      expect(response.body.status).toBe("approved");
+      const body = response.body as { fullName: string; status: string };
+      expect(body.fullName).toBe("山田 太郎");
+      expect(body.status).toBe("approved");
       expect(mockFirestoreService.set).toHaveBeenCalled();
       expect(mockFirestoreService.update).toHaveBeenCalled();
     });

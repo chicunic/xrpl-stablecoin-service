@@ -12,7 +12,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.post("/accounts/me/virtual-accounts", requireBankAuth, async (req, res: Response) => {
+router.post("/accounts/me/virtual-accounts", requireBankAuth, async (req, res: Response<unknown>) => {
   try {
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
 
@@ -31,7 +31,7 @@ router.post("/accounts/me/virtual-accounts", requireBankAuth, async (req, res: R
   }
 });
 
-router.get("/accounts/me/virtual-accounts", requireBankAuth, async (req, res: Response) => {
+router.get("/accounts/me/virtual-accounts", requireBankAuth, async (req, res: Response<unknown>) => {
   try {
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
 
@@ -48,7 +48,7 @@ router.get("/accounts/me/virtual-accounts", requireBankAuth, async (req, res: Re
   }
 });
 
-router.get("/accounts/me/virtual-accounts/:virtualAccountId", requireBankAuth, async (req, res: Response) => {
+router.get("/accounts/me/virtual-accounts/:virtualAccountId", requireBankAuth, async (req, res: Response<unknown>) => {
   try {
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
     const virtualAccountId = req.params.virtualAccountId as string;
@@ -71,7 +71,7 @@ router.get("/accounts/me/virtual-accounts/:virtualAccountId", requireBankAuth, a
   }
 });
 
-router.patch("/accounts/me/virtual-accounts/:virtualAccountId", requireBankAuth, async (req, res: Response) => {
+router.patch("/accounts/me/virtual-accounts/:virtualAccountId", requireBankAuth, async (req, res: Response<unknown>) => {
   try {
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
     const virtualAccountId = req.params.virtualAccountId as string;

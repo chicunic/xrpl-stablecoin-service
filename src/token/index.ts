@@ -81,7 +81,8 @@ app.use("/api/v1", invoiceRoutes);
 app.use("/api/v1", whitelistRoutes);
 app.use("/api/v1", withdrawalRoutes);
 
-app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+  void next;
   const errorObj = err as { status?: number; message?: string; errors?: unknown };
 
   if (errorObj.status && errorObj.status < 500) {
@@ -101,7 +102,7 @@ app.use((_req: Request, res: Response) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port} (${process.env.NODE_ENV})`);
+  console.log(`Server running on port ${String(port)} (${process.env.NODE_ENV ?? ""})`);
 });
 
 export { app };

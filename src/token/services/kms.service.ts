@@ -21,7 +21,7 @@ export async function signWithKms(message: Uint8Array, kmsKeyPath: string): Prom
   const sig =
     response.signature instanceof Uint8Array
       ? response.signature
-      : new Uint8Array(Buffer.from(response.signature as string, "base64"));
+      : new Uint8Array(Buffer.from(response.signature, "base64"));
 
   return Buffer.from(sig).toString("hex").toUpperCase();
 }

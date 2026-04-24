@@ -1,7 +1,7 @@
 import type express from "express";
 import { restAssert } from "../utils/helpers";
 import { mockIdentityPlatformAuth } from "../utils/mock.index";
-import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
+import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
 
 const mockGenerateMfaToken = vi.fn();
 
@@ -12,8 +12,8 @@ vi.mock("../../src/token/services/mfa-token.service", () => ({
 
 // Mock wallet.service to avoid real Secret Manager calls
 vi.mock("../../src/token/services/wallet.service", () => ({
-  deriveWallet: vi.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
-  getWalletForSigning: vi.fn().mockResolvedValue({ sign: vi.fn() }),
+  deriveWallet: vi.fn().mockReturnValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
+  getWalletForSigning: vi.fn().mockReturnValue({ sign: vi.fn() }),
   allocateXrpAddressIndex: vi.fn().mockResolvedValue(1),
 }));
 
@@ -29,7 +29,7 @@ vi.mock("../../src/token/services/trustline.service", () => ({
 
 vi.mock("../../src/token/config/bank", () => ({
   getBankServiceUrl: vi.fn().mockReturnValue("http://mock-bank-service"),
-  getBankAuthToken: vi.fn().mockResolvedValue("mock-bank-auth-token"),
+  getBankAuthToken: vi.fn().mockReturnValue("mock-bank-auth-token"),
 }));
 
 describe("MFA Routes - REST API Integration", () => {
@@ -78,7 +78,7 @@ describe("MFA Routes - REST API Integration", () => {
         firebase: { sign_in_second_factor: "phone" },
         kycStatus: "approved",
       });
-      mockGenerateMfaToken.mockResolvedValue("mock-mfa-token-value");
+      mockGenerateMfaToken.mockReturnValue("mock-mfa-token-value");
 
       const response = await helper.post(
         "/api/v1/mfa/verify",
@@ -89,9 +89,10 @@ describe("MFA Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response, 200);
-      expect(response.body.status).toBe("ok");
-      expect(response.body.mfaToken).toBe("mock-mfa-token-value");
-      expect(response.body.expiresIn).toBe(300);
+      const body = response.body as { status: string; mfaToken: string; expiresIn: number };
+      expect(body.status).toBe("ok");
+      expect(body.mfaToken).toBe("mock-mfa-token-value");
+      expect(body.expiresIn).toBe(300);
       expect(mockGenerateMfaToken).toHaveBeenCalledWith("google-uid-123456");
     });
   });

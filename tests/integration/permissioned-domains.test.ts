@@ -62,11 +62,11 @@ function assertTxSuccess(result: SubmitResponse, label: string): string {
   if (engineResult !== "tesSUCCESS") {
     throw new Error(`${label}: ${engineResult} — ${result.result.engine_result_message}`);
   }
-  return result.result.tx_json?.hash ?? "";
+  return result.result.tx_json.hash ?? "";
 }
 
 async function submitUserTx(client: Client, wallet: Wallet, tx: Record<string, unknown>): Promise<SubmitResponse> {
-  const prepared = await client.autofill(tx);
+  const prepared = await client.autofill(tx as Parameters<Client["autofill"]>[0]);
   const signed = wallet.sign(prepared);
   return client.submit(signed.tx_blob);
 }
@@ -151,7 +151,7 @@ describe("Permissioned Domains — devnet integration", () => {
     it("should retrieve domain info from ledger", async () => {
       const info = await getDomainInfo(domainId);
       expect(info).not.toBeNull();
-      expect(info.AcceptedCredentials?.length).toBeGreaterThan(0);
+      expect((info as { AcceptedCredentials?: unknown[] }).AcceptedCredentials?.length).toBeGreaterThan(0);
     });
   });
 
@@ -168,7 +168,8 @@ describe("Permissioned Domains — devnet integration", () => {
           value: "1000000",
         },
       });
-      assertTxSuccess(result, "TrustSet");
+      const hash = assertTxSuccess(result, "TrustSet");
+      expect(hash).toBeDefined();
       await waitForValidation();
     }, 30_000);
 
@@ -189,7 +190,7 @@ describe("Permissioned Domains — devnet integration", () => {
       const engine = result.result.engine_result;
       expect(["tesSUCCESS", "tecKILLED", "tecUNFUNDED_OFFER"]).toContain(engine);
 
-      offerSequence = (result.result.tx_json as any)?.Sequence;
+      offerSequence = (result.result.tx_json as Record<string, unknown>).Sequence as number | undefined;
       expect(offerSequence).toBeDefined();
       await waitForValidation();
     }, 30_000);

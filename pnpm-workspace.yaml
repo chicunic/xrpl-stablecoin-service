@@ -1,9 +1,0 @@
-packages:
-  - .
-
-onlyBuiltDependencies:
-  - '@firebase/util'
-  - '@scarf/scarf'
-  - esbuild
-  - protobufjs
-  - unrs-resolver

@@ -41,8 +41,8 @@ export const mockWalletService = {
   getWalletForSigning: vi.fn(),
   allocateXrpAddressIndex: vi.fn(),
   setup: () => {
-    mockWalletService.deriveWallet.mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" });
-    mockWalletService.getWalletForSigning.mockResolvedValue({
+    mockWalletService.deriveWallet.mockReturnValue({ address: "rMockAddress123", publicKey: "mock-pub-key" });
+    mockWalletService.getWalletForSigning.mockReturnValue({
       sign: vi.fn().mockReturnValue({ tx_blob: "mock-blob", hash: "mock-hash" }),
     });
     mockWalletService.allocateXrpAddressIndex.mockResolvedValue(1);

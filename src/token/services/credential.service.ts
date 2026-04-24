@@ -2,7 +2,7 @@ import { getTokenConfig } from "@token/config/tokens.js";
 import { signWithKms } from "@token/services/signing.service.js";
 import { getWalletForSigning } from "@token/services/wallet.service.js";
 import { getClient } from "@token/services/xrpl.service.js";
-import { convertStringToHex, encodeForSigning, type SubmitResponse } from "xrpl";
+import { type SubmitResponse, convertStringToHex, encodeForSigning } from "xrpl";
 
 export const CREDENTIAL_TYPE_KYC_JAPAN = "KYC_JAPAN";
 export const CREDENTIAL_TYPE_KYC_JAPAN_HEX = convertStringToHex("KYC_JAPAN");
@@ -11,22 +11,22 @@ function extractTxHash(result: SubmitResponse): string {
   if (result.result.engine_result !== "tesSUCCESS") {
     throw new Error(`XRPL transaction failed: ${result.result.engine_result_message}`);
   }
-  return result.result.tx_json?.hash ?? "";
+  return result.result.tx_json.hash ?? "";
 }
 
 export async function issueCredential(userAddress: string, credentialType: string): Promise<string> {
   const xrplClient = await getClient();
   const { issuerAddress, kmsKeyPath, signingPublicKey } = getTokenConfig("JPYN");
 
-  const tx: any = {
-    TransactionType: "CredentialCreate",
+  const tx = {
+    TransactionType: "CredentialCreate" as const,
     Account: issuerAddress,
     Subject: userAddress,
     CredentialType: credentialType,
   };
 
-  const prepared: any = await xrplClient.autofill(tx);
-  prepared.SigningPubKey = signingPublicKey;
+  const prepared = await xrplClient.autofill(tx);
+  (prepared as Record<string, unknown>).SigningPubKey = signingPublicKey;
   const encodedTx = encodeForSigning(prepared);
   const signature = await signWithKms(Buffer.from(encodedTx, "hex"), kmsKeyPath);
 
@@ -45,7 +45,7 @@ export async function acceptCredential(
   credentialType: string,
 ): Promise<string> {
   const xrplClient = await getClient();
-  const wallet = await getWalletForSigning(bipIndex);
+  const wallet = getWalletForSigning(bipIndex);
 
   const tx = {
     TransactionType: "CredentialAccept" as const,
@@ -65,15 +65,15 @@ export async function revokeCredential(userAddress: string, credentialType: stri
   const xrplClient = await getClient();
   const { issuerAddress, kmsKeyPath, signingPublicKey } = getTokenConfig("JPYN");
 
-  const tx: any = {
-    TransactionType: "CredentialDelete",
+  const tx = {
+    TransactionType: "CredentialDelete" as const,
     Account: issuerAddress,
     Subject: userAddress,
     CredentialType: credentialType,
   };
 
-  const prepared: any = await xrplClient.autofill(tx);
-  prepared.SigningPubKey = signingPublicKey;
+  const prepared = await xrplClient.autofill(tx);
+  (prepared as Record<string, unknown>).SigningPubKey = signingPublicKey;
   const encodedTx = encodeForSigning(prepared);
   const signature = await signWithKms(Buffer.from(encodedTx, "hex"), kmsKeyPath);
 
@@ -100,21 +100,23 @@ export async function getCredentialStatus(
         issuer: issuerAddress,
         credential_type: credentialType,
       },
-    } as any);
+    } as unknown as Parameters<typeof xrplClient.request>[0]);
 
-    const node = (response.result as any).node;
+    const result = response.result as Record<string, unknown>;
+    const node = result.node as Record<string, unknown> | undefined;
     if (!node) {
       return { exists: false, accepted: false };
     }
 
-    const accepted = !!(node.Flags & 0x00010000); // lsfAccepted
+    const accepted = !!((node.Flags as number) & 0x00010000); // lsfAccepted
     return {
       exists: true,
       accepted,
-      expiration: node.Expiration,
+      expiration: node.Expiration as number | undefined,
     };
-  } catch (error: any) {
-    if (error?.data?.error === "entryNotFound") {
+  } catch (error: unknown) {
+    const err = error as { data?: { error?: string } };
+    if (err.data?.error === "entryNotFound") {
       return { exists: false, accepted: false };
     }
     throw error;

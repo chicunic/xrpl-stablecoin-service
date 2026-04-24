@@ -36,7 +36,7 @@ export async function processBankDeposit(
       throw new Error(`User document not found: ${user.uid}`);
     }
 
-    const currentBalance = (userDoc.data()?.fiatBalance as number) ?? 0;
+    const currentBalance = ((userDoc.data() as FirebaseFirestore.DocumentData).fiatBalance as number | undefined) ?? 0;
     const newBalance = currentBalance + amount;
 
     tx.update(userRef, { fiatBalance: newBalance });
@@ -59,7 +59,7 @@ export async function processBankDeposit(
     });
   });
 
-  console.log(`Fiat deposit credited: userId=${user.uid}, amount=${amount}, txId=${bankTransactionId}`);
+  console.log(`Fiat deposit credited: userId=${user.uid}, amount=${String(amount)}, txId=${bankTransactionId}`);
 }
 
 interface TokenTransactionData {
@@ -149,7 +149,7 @@ export async function processXrplTokenTransaction(
   });
 
   console.log(
-    `XRPL token deposit credited: userId=${user.uid}, token=${tokenConfig.tokenId}, amount=${amount}, txHash=${txHash}`,
+    `XRPL token deposit credited: userId=${user.uid}, token=${tokenConfig.tokenId}, amount=${String(amount)}, txHash=${txHash}`,
   );
 
   return { processed: true };

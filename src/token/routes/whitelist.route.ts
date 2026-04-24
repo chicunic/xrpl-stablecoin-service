@@ -20,7 +20,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.get("/whitelist/xrp", requireAuth, async (req, res: Response) => {
+router.get("/whitelist/xrp", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const whitelist = await getXrpWhitelist(uid);
@@ -30,7 +30,7 @@ router.get("/whitelist/xrp", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.post("/whitelist/xrp", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response) => {
+router.post("/whitelist/xrp", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const { address, label } = req.body as { address: string; label: string };
@@ -48,7 +48,7 @@ router.delete(
   requireKyc,
   requireMfa,
   requireOperationMfa,
-  async (req, res: Response) => {
+  async (req, res: Response<unknown>) => {
     try {
       const { uid } = (req as AuthenticatedRequest).user;
       await removeXrpWhitelist(uid, req.params.address as string);
@@ -59,7 +59,7 @@ router.delete(
   },
 );
 
-router.get("/whitelist/bank", requireAuth, async (req, res: Response) => {
+router.get("/whitelist/bank", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const whitelist = await getBankWhitelist(uid);
@@ -69,7 +69,7 @@ router.get("/whitelist/bank", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.post("/whitelist/bank", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response) => {
+router.post("/whitelist/bank", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const bankAccount = req.body as Omit<BankAccount, "createdAt">;
@@ -87,7 +87,7 @@ router.delete(
   requireKyc,
   requireMfa,
   requireOperationMfa,
-  async (req, res: Response) => {
+  async (req, res: Response<unknown>) => {
     try {
       const { uid } = (req as AuthenticatedRequest).user;
       const id = req.params.id as string;

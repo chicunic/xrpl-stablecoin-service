@@ -2,7 +2,7 @@ import type express from "express";
 import { MOCK_WALLET_DOC } from "../utils/data";
 import { restAssert } from "../utils/helpers";
 import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.index";
-import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
+import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
 
 // Set JPYN_DOMAIN_ID before importing tokens config
 process.env.JPYN_DOMAIN_ID = "mock-domain-id-123";
@@ -13,10 +13,10 @@ const mockCancelOffer = vi.fn();
 const mockGetPermissionedOrderBook = vi.fn();
 const mockBuildOfferAmounts = vi.fn();
 vi.mock("../../src/token/services/dex.service", () => ({
-  createPermissionedOffer: (...args: any[]) => mockCreatePermissionedOffer(...args),
-  cancelOffer: (...args: any[]) => mockCancelOffer(...args),
-  getPermissionedOrderBook: (...args: any[]) => mockGetPermissionedOrderBook(...args),
-  buildOfferAmounts: (...args: any[]) => mockBuildOfferAmounts(...args),
+  createPermissionedOffer: (...args: unknown[]) => mockCreatePermissionedOffer(...args) as unknown,
+  cancelOffer: (...args: unknown[]) => mockCancelOffer(...args) as unknown,
+  getPermissionedOrderBook: (...args: unknown[]) => mockGetPermissionedOrderBook(...args) as unknown,
+  buildOfferAmounts: (...args: unknown[]) => mockBuildOfferAmounts(...args) as unknown,
   tfHybrid: 0x00800000,
 }));
 
@@ -123,8 +123,9 @@ describe("DEX Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response, 201);
-      expect(response.body.txHash).toBe("mock-offer-tx-hash");
-      expect(response.body.offerSequence).toBe(42);
+      const body = response.body as { txHash: string; offerSequence: number };
+      expect(body.txHash).toBe("mock-offer-tx-hash");
+      expect(body.offerSequence).toBe(42);
       expect(mockCreatePermissionedOffer).toHaveBeenCalled();
     });
 
@@ -173,7 +174,8 @@ describe("DEX Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response, 200);
-      expect(response.body.txHash).toBe("mock-cancel-tx-hash");
+      const cancelBody = response.body as { txHash: string };
+      expect(cancelBody.txHash).toBe("mock-cancel-tx-hash");
       expect(mockCancelOffer).toHaveBeenCalledWith(MOCK_WALLET_DOC.bipIndex, MOCK_WALLET_DOC.address, 42);
     });
   });
@@ -205,8 +207,9 @@ describe("DEX Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response, 200);
-      expect(response.body.asks).toHaveLength(1);
-      expect(response.body.bids).toHaveLength(0);
+      const obBody = response.body as { asks: unknown[]; bids: unknown[] };
+      expect(obBody.asks).toHaveLength(1);
+      expect(obBody.bids).toHaveLength(0);
       expect(mockGetPermissionedOrderBook).toHaveBeenCalled();
     });
   });

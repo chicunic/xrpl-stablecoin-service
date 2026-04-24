@@ -4,7 +4,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.post("/eventarc/xrpl/deposit", async (req: Request, res: Response) => {
+router.post("/eventarc/xrpl/deposit", async (req: Request, res: Response<unknown>) => {
   try {
     // Eventarc Firestore trigger sends CloudEvent format
     // The document data is in req.body (parsed by Cloud Run)
@@ -16,7 +16,7 @@ router.post("/eventarc/xrpl/deposit", async (req: Request, res: Response) => {
     };
 
     // Extract txHash from document name: projects/.../documents/tokenTransactions/{txHash}
-    const documentName = event?.document?.name;
+    const documentName = event.document?.name;
     if (!documentName) {
       console.error("Invalid Eventarc event: missing document name");
       res.status(200).json({ status: "skipped", reason: "invalid event" });
@@ -31,7 +31,9 @@ router.post("/eventarc/xrpl/deposit", async (req: Request, res: Response) => {
     }
 
     // Parse Firestore document fields into plain object
-    const data = parseFirestoreFields(event.document!.fields ?? {});
+    const data = parseFirestoreFields(event.document?.fields ?? {}) as unknown as Parameters<
+      typeof processXrplTokenTransaction
+    >[1];
 
     const result = await processXrplTokenTransaction(txHash, data);
 
@@ -69,7 +71,7 @@ function parseFirestoreValue(field: unknown): unknown {
   return f;
 }
 
-function parseFirestoreFields(fields: Record<string, unknown>): any {
+function parseFirestoreFields(fields: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(fields)) {
     result[key] = parseFirestoreValue(value);

@@ -2,16 +2,16 @@ import type express from "express";
 import { MOCK_WALLET_DOC } from "../utils/data";
 import { restAssert } from "../utils/helpers";
 import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.index";
-import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
+import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
 
 // Mock credential.service
 const mockGetCredentialStatus = vi.fn();
 const mockIssueCredential = vi.fn();
 const mockAcceptCredential = vi.fn();
 vi.mock("../../src/token/services/credential.service", () => ({
-  getCredentialStatus: (...args: any[]) => mockGetCredentialStatus(...args),
-  issueCredential: (...args: any[]) => mockIssueCredential(...args),
-  acceptCredential: (...args: any[]) => mockAcceptCredential(...args),
+  getCredentialStatus: (...args: unknown[]) => mockGetCredentialStatus(...args) as unknown,
+  issueCredential: (...args: unknown[]) => mockIssueCredential(...args) as unknown,
+  acceptCredential: (...args: unknown[]) => mockAcceptCredential(...args) as unknown,
   CREDENTIAL_TYPE_KYC_JAPAN_HEX: "4B59435F4A4150414E",
 }));
 
@@ -105,8 +105,9 @@ describe("Credential Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response, 200);
-      expect(response.body.exists).toBe(true);
-      expect(response.body.accepted).toBe(true);
+      const body = response.body as { exists: boolean; accepted: boolean };
+      expect(body.exists).toBe(true);
+      expect(body.accepted).toBe(true);
       expect(mockGetCredentialStatus).toHaveBeenCalledWith(
         MOCK_WALLET_DOC.address,
         expect.any(String),
@@ -156,9 +157,14 @@ describe("Credential Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response, 200);
-      expect(response.body.credentialTxHash).toBe("mock-issue-tx-hash");
-      expect(response.body.credentialAcceptTxHash).toBe("mock-accept-tx-hash");
-      expect(response.body.credentialStatus).toBe("accepted");
+      const retryBody = response.body as {
+        credentialTxHash: string;
+        credentialAcceptTxHash: string;
+        credentialStatus: string;
+      };
+      expect(retryBody.credentialTxHash).toBe("mock-issue-tx-hash");
+      expect(retryBody.credentialAcceptTxHash).toBe("mock-accept-tx-hash");
+      expect(retryBody.credentialStatus).toBe("accepted");
     });
   });
 });

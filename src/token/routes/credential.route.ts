@@ -3,8 +3,8 @@ import { getTokenConfig } from "@token/config/tokens.js";
 import { type AuthenticatedRequest, requireAuth, requireKyc } from "@token/middleware/auth.js";
 import { getUserWallet } from "@token/services/auth.service.js";
 import {
-  acceptCredential,
   CREDENTIAL_TYPE_KYC_JAPAN_HEX,
+  acceptCredential,
   getCredentialStatus,
   issueCredential,
 } from "@token/services/credential.service.js";
@@ -13,7 +13,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.get("/users/me/credential", requireAuth, requireKyc, async (req, res: Response) => {
+router.get("/users/me/credential", requireAuth, requireKyc, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const wallet = await getUserWallet(uid);
@@ -30,7 +30,7 @@ router.get("/users/me/credential", requireAuth, requireKyc, async (req, res: Res
   }
 });
 
-router.post("/users/me/credential/retry", requireAuth, requireKyc, async (req, res: Response) => {
+router.post("/users/me/credential/retry", requireAuth, requireKyc, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const wallet = await getUserWallet(uid);
