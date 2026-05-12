@@ -1,3 +1,4 @@
+import type { Request, Response } from "express";
 import type express from "express";
 import { ValidationError } from "../../../src/common/utils/error.handler";
 import { restAssert } from "../../utils/helpers";
@@ -63,12 +64,13 @@ describe("Bank Transfer Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response);
-      expect(response.body.balance).toBe(5000);
-      expect(response.body.transactionId).toBe("tx-123");
+      const body = response.body as { balance: number; transactionId: string };
+      expect(body.balance).toBe(5000);
+      expect(body.transactionId).toBe("tx-123");
     });
 
     it("should return 401 without auth", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((_req: any, res: any) => {
+      mockBankAuth.requireBankAuth.mockImplementation((_req: Request, res: Response) => {
         res.status(401).json({ error: "Missing or invalid Authorization header" });
       });
 

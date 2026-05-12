@@ -17,7 +17,7 @@ interface BankVirtualAccountResponse {
 
 async function createBankVirtualAccount(label: string): Promise<BankVirtualAccountResponse> {
   const bankServiceUrl = getBankServiceUrl();
-  const bankAuthToken = await getBankAuthToken();
+  const bankAuthToken = getBankAuthToken();
   const url = `${bankServiceUrl}/api/v1/accounts/me/virtual-accounts`;
   const response = await fetch(url, {
     method: "POST",
@@ -29,7 +29,7 @@ async function createBankVirtualAccount(label: string): Promise<BankVirtualAccou
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to create virtual account: ${response.status}`);
+    throw new Error(`Failed to create virtual account: ${String(response.status)}`);
   }
 
   return (await response.json()) as BankVirtualAccountResponse;
@@ -80,7 +80,7 @@ export async function setupWallet(uid: string): Promise<Wallet> {
   }
 
   const bipIndex = await allocateXrpAddressIndex();
-  const { address } = await deriveWallet(bipIndex);
+  const { address } = deriveWallet(bipIndex);
 
   try {
     await fundAccount(address);
@@ -154,8 +154,12 @@ export async function getUserByWalletAddress(address: string): Promise<User | nu
     return null;
   }
 
-  const docRef = snapshot.docs[0]!.ref;
-  const uid = docRef.parent.parent!.id;
+  const firstDoc = snapshot.docs[0];
+  if (!firstDoc) return null;
+  const docRef = firstDoc.ref;
+  const parentDoc = docRef.parent.parent;
+  if (!parentDoc) return null;
+  const uid = parentDoc.id;
 
   const userDoc = await db.collection(USERS_COLLECTION).doc(uid).get();
   if (!userDoc.exists) {
@@ -177,8 +181,12 @@ export async function getUserByVirtualAccountNumber(accountNumber: string): Prom
     return null;
   }
 
-  const docRef = snapshot.docs[0]!.ref;
-  const uid = docRef.parent.parent!.id;
+  const firstDoc = snapshot.docs[0];
+  if (!firstDoc) return null;
+  const docRef = firstDoc.ref;
+  const parentDoc = docRef.parent.parent;
+  if (!parentDoc) return null;
+  const uid = parentDoc.id;
 
   const userDoc = await db.collection(USERS_COLLECTION).doc(uid).get();
   if (!userDoc.exists) {

@@ -9,7 +9,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.get("/tokens", requireAuth, async (_req: Request, res: Response) => {
+router.get("/tokens", requireAuth, (_req: Request, res: Response<unknown>) => {
   try {
     res.json(getAllTokenConfigs());
   } catch (error) {
@@ -17,7 +17,7 @@ router.get("/tokens", requireAuth, async (_req: Request, res: Response) => {
   }
 });
 
-router.get("/tokens/:tokenId", requireAuth, async (req: Request, res: Response) => {
+router.get("/tokens/:tokenId", requireAuth, (req: Request, res: Response<unknown>) => {
   try {
     const config = getTokenConfig(req.params.tokenId as string);
     res.json(config);
@@ -26,7 +26,7 @@ router.get("/tokens/:tokenId", requireAuth, async (req: Request, res: Response) 
   }
 });
 
-router.post("/tokens/:tokenId/trustline", requireAuth, async (req: Request, res: Response) => {
+router.post("/tokens/:tokenId/trustline", requireAuth, async (req: Request, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const tokenId = req.params.tokenId as string;

@@ -7,7 +7,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.post("/atm/deposit", requireBankAuth, rejectApiToken, async (req, res: Response) => {
+router.post("/atm/deposit", requireBankAuth, rejectApiToken, async (req, res: Response<unknown>) => {
   try {
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
     const { amount, pin } = req.body as { amount: number; pin: string };
@@ -21,7 +21,7 @@ router.post("/atm/deposit", requireBankAuth, rejectApiToken, async (req, res: Re
   }
 });
 
-router.post("/atm/withdrawal", requireBankAuth, rejectApiToken, async (req, res: Response) => {
+router.post("/atm/withdrawal", requireBankAuth, rejectApiToken, async (req, res: Response<unknown>) => {
   try {
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
     const { amount, pin } = req.body as { amount: number; pin: string };

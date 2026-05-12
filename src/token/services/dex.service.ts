@@ -1,17 +1,22 @@
 import { getTokenConfig, toXrplCurrency } from "@token/config/tokens.js";
 import { getWalletForSigning } from "@token/services/wallet.service.js";
 import { getClient } from "@token/services/xrpl.service.js";
-import type { SubmitResponse } from "xrpl";
+import type { SubmitResponse, SubmittableTransaction } from "xrpl";
 
 const tfHybrid = 0x00800000;
+
+interface TxJson {
+  hash?: string;
+  Sequence?: number;
+}
 
 function extractTxResult(result: SubmitResponse): { txHash: string; sequence?: number } {
   if (result.result.engine_result !== "tesSUCCESS") {
     throw new Error(`XRPL transaction failed: ${result.result.engine_result_message}`);
   }
   return {
-    txHash: result.result.tx_json?.hash ?? "",
-    sequence: (result.result.tx_json as any)?.Sequence,
+    txHash: result.result.tx_json.hash ?? "",
+    sequence: (result.result.tx_json as TxJson).Sequence,
   };
 }
 
@@ -24,9 +29,9 @@ export async function createPermissionedOffer(
   flags?: number,
 ): Promise<{ txHash: string; offerSequence: number }> {
   const xrplClient = await getClient();
-  const wallet = await getWalletForSigning(bipIndex);
+  const wallet = getWalletForSigning(bipIndex);
 
-  const tx: any = {
+  const tx: Record<string, unknown> = {
     TransactionType: "OfferCreate",
     Account: userAddress,
     TakerGets: takerGets,
@@ -38,7 +43,7 @@ export async function createPermissionedOffer(
     tx.Flags = flags;
   }
 
-  const prepared = await xrplClient.autofill(tx);
+  const prepared = await xrplClient.autofill(tx as unknown as SubmittableTransaction);
   const signed = wallet.sign(prepared);
   const result: SubmitResponse = await xrplClient.submit(signed.tx_blob);
 
@@ -48,7 +53,7 @@ export async function createPermissionedOffer(
 
 export async function cancelOffer(bipIndex: number, userAddress: string, offerSequence: number): Promise<string> {
   const xrplClient = await getClient();
-  const wallet = await getWalletForSigning(bipIndex);
+  const wallet = getWalletForSigning(bipIndex);
 
   const tx = {
     TransactionType: "OfferCancel" as const,
@@ -64,11 +69,20 @@ export async function cancelOffer(bipIndex: number, userAddress: string, offerSe
   return txHash;
 }
 
+interface OrderBookOffer {
+  DomainID?: string;
+  [key: string]: unknown;
+}
+
+interface OrderBookResult {
+  offers?: OrderBookOffer[];
+}
+
 export async function getPermissionedOrderBook(
   domainId: string,
   takerGets: { currency: string; issuer?: string },
   takerPays: { currency: string; issuer?: string },
-): Promise<{ asks: any[]; bids: any[] }> {
+): Promise<{ asks: OrderBookOffer[]; bids: OrderBookOffer[] }> {
   const xrplClient = await getClient();
 
   const [askResponse, bidResponse] = await Promise.all([
@@ -76,20 +90,20 @@ export async function getPermissionedOrderBook(
       command: "book_offers",
       taker_gets: takerGets,
       taker_pays: takerPays,
-    } as any),
+    } as unknown as Parameters<typeof xrplClient.request>[0]),
     xrplClient.request({
       command: "book_offers",
       taker_gets: takerPays,
       taker_pays: takerGets,
-    } as any),
+    } as unknown as Parameters<typeof xrplClient.request>[0]),
   ]);
 
   // Filter offers by DomainID
-  const filterByDomain = (offers: any[]) => offers.filter((offer: any) => offer.DomainID === domainId);
+  const filterByDomain = (offers: OrderBookOffer[]) => offers.filter((offer) => offer.DomainID === domainId);
 
   return {
-    asks: filterByDomain((askResponse.result as any).offers ?? []),
-    bids: filterByDomain((bidResponse.result as any).offers ?? []),
+    asks: filterByDomain((askResponse.result as OrderBookResult).offers ?? []),
+    bids: filterByDomain((bidResponse.result as OrderBookResult).offers ?? []),
   };
 }
 
@@ -98,7 +112,10 @@ export function buildOfferAmounts(
   side: "buy" | "sell",
   amount: string,
   price: string,
-): { takerGets: any; takerPays: any } {
+): {
+  takerGets: { currency: string; value: string; issuer: string } | string;
+  takerPays: { currency: string; value: string; issuer: string } | string;
+} {
   const config = getTokenConfig(tokenId);
   const xrplCurrency = toXrplCurrency(config.currency);
 

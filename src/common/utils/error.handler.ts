@@ -1,5 +1,3 @@
-import type { Response } from "express";
-
 export interface ErrorResponse {
   error: string;
 }
@@ -31,7 +29,11 @@ export class ConflictError extends AppError {
   }
 }
 
-export function handleRouteError(error: unknown, res: Response<ErrorResponse>, context: string): void {
+interface ErrorResponseSender {
+  status: (code: number) => { json: (body: ErrorResponse) => void };
+}
+
+export function handleRouteError(error: unknown, res: ErrorResponseSender, context: string): void {
   console.error(`Error in ${context}:`, error);
 
   if (error instanceof AppError) {

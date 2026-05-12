@@ -50,13 +50,15 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       res.status(401).json({ error: "Invalid or expired session" });
       return;
     }
+    const name = typeof decoded.name === "string" ? decoded.name : decoded.email;
+    const kycStatus = typeof decoded.kycStatus === "string" ? decoded.kycStatus : "none";
     (req as AuthenticatedRequest).user = {
       uid: decoded.uid,
       email: decoded.email,
-      name: decoded.name ?? decoded.email,
-      mfaVerified: !!decoded.firebase?.sign_in_second_factor,
-      kycStatus: (decoded.kycStatus as string) ?? "none",
-      authTime: (decoded.auth_time as number) ?? 0,
+      name,
+      mfaVerified: !!decoded.firebase.sign_in_second_factor,
+      kycStatus,
+      authTime: decoded.auth_time,
     };
     next();
   } catch {
@@ -64,7 +66,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   }
 }
 
-export async function requireOperationMfa(req: Request, res: Response, next: NextFunction): Promise<void> {
+export function requireOperationMfa(req: Request, res: Response, next: NextFunction): void {
   const token = req.headers["x-mfa-token"] as string | undefined;
   if (!token) {
     res.status(403).json({ error: "MFA verification required", code: "MFA_REQUIRED" });
@@ -73,7 +75,7 @@ export async function requireOperationMfa(req: Request, res: Response, next: Nex
 
   try {
     const { uid } = (req as AuthenticatedRequest).user;
-    await verifyMfaToken(token, uid);
+    verifyMfaToken(token, uid);
     next();
   } catch {
     res.status(403).json({ error: "MFA verification required", code: "MFA_REQUIRED" });

@@ -14,7 +14,7 @@ vi.mock("../../src/token/services/signing.service", () => ({
 
 vi.mock("xrpl", async () => ({
   ...(await vi.importActual("xrpl")),
-  encodeForSigning: (...args: any[]) => mockEncodeForSigning(...args),
+  encodeForSigning: (...args: unknown[]) => mockEncodeForSigning(...args) as unknown,
 }));
 
 import { createDomain, deleteDomain, getDomainInfo, updateDomain } from "../../src/token/services/domain.service";
@@ -33,7 +33,9 @@ describe("domain.service", () => {
     mockGetClient.mockResolvedValue(mockClient);
     mockSignWithKms.mockResolvedValue("mock-signature");
     mockEncodeForSigning.mockReturnValue("AABBCCDD");
-    mockClient.autofill.mockImplementation(async (tx: any) => ({ ...tx, Sequence: 42, Fee: "12" }));
+    mockClient.autofill.mockImplementation((tx: Record<string, unknown>) =>
+      Promise.resolve({ ...tx, Sequence: 42, Fee: "12" }),
+    );
   });
 
   describe("createDomain", () => {

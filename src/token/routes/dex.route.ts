@@ -1,4 +1,4 @@
-import { handleRouteError, ValidationError } from "@common/utils/error.handler.js";
+import { ValidationError, handleRouteError } from "@common/utils/error.handler.js";
 import { getTokenConfig, toXrplCurrency } from "@token/config/tokens.js";
 import { type AuthenticatedRequest, requireAuth, requireKyc } from "@token/middleware/auth.js";
 import { getUserWallet } from "@token/services/auth.service.js";
@@ -14,10 +14,16 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.post("/dex/offers", requireAuth, requireKyc, async (req, res: Response) => {
+router.post("/dex/offers", requireAuth, requireKyc, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
-    const { tokenId, side, amount, price, hybrid } = req.body;
+    const { tokenId, side, amount, price, hybrid } = req.body as {
+      tokenId: string;
+      side: "buy" | "sell";
+      amount: string;
+      price: string;
+      hybrid?: boolean;
+    };
 
     const wallet = await getUserWallet(uid);
     if (!wallet) {
@@ -48,7 +54,7 @@ router.post("/dex/offers", requireAuth, requireKyc, async (req, res: Response) =
   }
 });
 
-router.delete("/dex/offers/:offerSequence", requireAuth, requireKyc, async (req, res: Response) => {
+router.delete("/dex/offers/:offerSequence", requireAuth, requireKyc, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const offerSequence = Number.parseInt(req.params.offerSequence as string, 10);
@@ -66,7 +72,7 @@ router.delete("/dex/offers/:offerSequence", requireAuth, requireKyc, async (req,
   }
 });
 
-router.get("/dex/orderbook", requireAuth, requireKyc, async (req, res: Response) => {
+router.get("/dex/orderbook", requireAuth, requireKyc, async (req, res: Response<unknown>) => {
   try {
     const tokenId = req.query.tokenId as string | undefined;
     if (!tokenId) {

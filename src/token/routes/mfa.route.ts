@@ -6,7 +6,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.post("/mfa/verify", requireAuth, async (req, res: Response) => {
+router.post("/mfa/verify", requireAuth, (req, res: Response<unknown>) => {
   try {
     const { uid, mfaVerified } = (req as AuthenticatedRequest).user;
 
@@ -15,7 +15,7 @@ router.post("/mfa/verify", requireAuth, async (req, res: Response) => {
       return;
     }
 
-    const mfaToken = await generateMfaToken(uid);
+    const mfaToken = generateMfaToken(uid);
 
     res.json({ status: "ok", mfaToken, expiresIn: 300 });
   } catch (error) {

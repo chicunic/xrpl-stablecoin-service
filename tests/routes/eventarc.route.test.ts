@@ -38,7 +38,7 @@ vi.mock("../../src/token/services/trustline.service", () => ({
 }));
 
 import { getTokenConfig } from "../../src/token/config/tokens";
-import { createCompleteTestApp, RestTestHelper } from "../utils/server.rest";
+import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
 
 const ISSUER_ADDRESS = getTokenConfig("JPYN").issuerAddress;
 
@@ -57,8 +57,9 @@ function stringVal(v: string) {
   return { stringValue: v };
 }
 function _intVal(v: number) {
-  return { integerValue: String(v) };
+  return { integerValue: String(v) } as const;
 }
+void _intVal;
 function mapVal(fields: Record<string, unknown>) {
   return { mapValue: { fields } };
 }
@@ -135,7 +136,8 @@ describe("Eventarc Routes - REST API Integration", () => {
       const response = await helper.post("/api/v1/eventarc/xrpl/deposit", body);
 
       restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("ok");
+      const resBody = response.body as { status: string };
+      expect(resBody.status).toBe("ok");
     });
 
     it("should skip duplicate event (idempotency)", async () => {
@@ -186,17 +188,17 @@ describe("Eventarc Routes - REST API Integration", () => {
       const response = await helper.post("/api/v1/eventarc/xrpl/deposit", body);
 
       restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("ok");
+      const resBody = response.body as { status: string };
+      expect(resBody.status).toBe("ok");
     });
 
     it("should skip event with missing document name", async () => {
-      const body = { document: {} };
-
-      const response = await helper.post("/api/v1/eventarc/xrpl/deposit", body);
+      const response = await helper.post("/api/v1/eventarc/xrpl/deposit", { document: {} });
 
       restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("skipped");
-      expect(response.body.reason).toBe("invalid event");
+      const resBody = response.body as { status: string; reason: string };
+      expect(resBody.status).toBe("skipped");
+      expect(resBody.reason).toBe("invalid event");
     });
 
     it("should skip failed transaction (non-tesSUCCESS)", async () => {
@@ -219,8 +221,9 @@ describe("Eventarc Routes - REST API Integration", () => {
       const response = await helper.post("/api/v1/eventarc/xrpl/deposit", body);
 
       restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("skipped");
-      expect(response.body.reason).toBe("transaction not successful");
+      const resBody = response.body as { status: string; reason: string };
+      expect(resBody.status).toBe("skipped");
+      expect(resBody.reason).toBe("transaction not successful");
     });
 
     it("should skip burn transaction", async () => {
@@ -248,8 +251,9 @@ describe("Eventarc Routes - REST API Integration", () => {
       const response = await helper.post("/api/v1/eventarc/xrpl/deposit", body);
 
       restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("skipped");
-      expect(response.body.reason).toBe("burn transaction");
+      const resBody = response.body as { status: string; reason: string };
+      expect(resBody.status).toBe("skipped");
+      expect(resBody.reason).toBe("burn transaction");
     });
 
     it("should skip when destination is not a custodial wallet", async () => {
@@ -284,8 +288,9 @@ describe("Eventarc Routes - REST API Integration", () => {
       const response = await helper.post("/api/v1/eventarc/xrpl/deposit", body);
 
       restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("skipped");
-      expect(response.body.reason).toBe("destination is not a custodial wallet");
+      const resBody = response.body as { status: string; reason: string };
+      expect(resBody.status).toBe("skipped");
+      expect(resBody.reason).toBe("destination is not a custodial wallet");
     });
 
     it("should skip unknown token (currency/issuer not in config)", async () => {
@@ -313,8 +318,9 @@ describe("Eventarc Routes - REST API Integration", () => {
       const response = await helper.post("/api/v1/eventarc/xrpl/deposit", body);
 
       restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("skipped");
-      expect(response.body.reason).toBe("unknown token");
+      const resBody = response.body as { status: string; reason: string };
+      expect(resBody.status).toBe("skipped");
+      expect(resBody.reason).toBe("unknown token");
     });
 
     it("should return 500 on processing error (trigger Eventarc retry)", async () => {

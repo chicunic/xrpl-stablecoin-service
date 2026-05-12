@@ -66,6 +66,7 @@ export async function createAccount(
   const created = await db.collection(BANK_ACCOUNTS_COLLECTION).doc(accountId).get();
   const data = created.data() as BankAccountData;
   const { pin: _, ...safeData } = data;
+  void _;
   return safeData;
 }
 
@@ -225,6 +226,7 @@ export async function updateAccount(
   const updated = await docRef.get();
   const data = updated.data() as BankAccountData;
   const { pin: _, ...safeData } = data;
+  void _;
   return safeData;
 }
 

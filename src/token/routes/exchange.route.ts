@@ -6,7 +6,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.post("/exchange/fiat-to-xrp", requireAuth, requireKyc, async (req, res: Response) => {
+router.post("/exchange/fiat-to-xrp", requireAuth, requireKyc, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const { tokenId, fiatAmount } = req.body as {
@@ -21,7 +21,7 @@ router.post("/exchange/fiat-to-xrp", requireAuth, requireKyc, async (req, res: R
   }
 });
 
-router.post("/exchange/xrp-to-fiat", requireAuth, requireKyc, async (req, res: Response) => {
+router.post("/exchange/xrp-to-fiat", requireAuth, requireKyc, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const { tokenId, tokenAmount } = req.body as {

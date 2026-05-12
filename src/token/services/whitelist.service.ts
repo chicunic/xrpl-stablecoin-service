@@ -14,7 +14,7 @@ function extractArray<T>(doc: DocumentSnapshot, field: string): T[] {
   if (!doc.exists) {
     return [];
   }
-  return (doc.data()?.[field] as T[]) ?? [];
+  return ((doc.data() as FirebaseFirestore.DocumentData)[field] as T[] | undefined) ?? [];
 }
 
 export async function addXrpWhitelist(userId: string, address: string, label: string): Promise<WhitelistAddress> {

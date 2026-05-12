@@ -7,7 +7,7 @@ export function getBankServiceUrl(): string {
   return BANK_SERVICE_URL;
 }
 
-export async function getBankAuthToken(): Promise<string> {
+export function getBankAuthToken(): string {
   const token = process.env.BANK_AUTH_TOKEN;
   if (!token) {
     throw new Error("BANK_AUTH_TOKEN is not configured");

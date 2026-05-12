@@ -26,12 +26,12 @@ function extractTxHash(result: SubmitResponse): string {
   if (result.result.engine_result !== "tesSUCCESS") {
     throw new Error(`XRPL transaction failed: ${result.result.engine_result_message}`);
   }
-  return result.result.tx_json?.hash ?? "";
+  return result.result.tx_json.hash ?? "";
 }
 
 async function signAndSubmitWithWallet(xrpAddressIndex: number, payment: Payment): Promise<string> {
   const xrplClient = await getClient();
-  const wallet = await getWalletForSigning(xrpAddressIndex);
+  const wallet = getWalletForSigning(xrpAddressIndex);
 
   const prepared = await xrplClient.autofill(payment);
   const signed = wallet.sign(prepared);

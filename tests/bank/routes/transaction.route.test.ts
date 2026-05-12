@@ -1,3 +1,4 @@
+import type { Request, Response } from "express";
 import type express from "express";
 import { restAssert } from "../../utils/helpers";
 import { mockFirestoreService } from "../../utils/mock.index";
@@ -51,9 +52,10 @@ describe("Bank Transaction Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response);
-      expect(Array.isArray(response.body)).toBe(true);
-      expect(response.body).toHaveLength(1);
-      expect(response.body[0].transactionId).toBe(MOCK_BANK_TRANSACTION.transactionId);
+      const body = response.body as (typeof MOCK_BANK_TRANSACTION)[];
+      expect(Array.isArray(body)).toBe(true);
+      expect(body).toHaveLength(1);
+      expect(body[0]?.transactionId).toBe(MOCK_BANK_TRANSACTION.transactionId);
     });
 
     it("should return empty array when no transactions", async () => {
@@ -68,7 +70,7 @@ describe("Bank Transaction Routes - REST API Integration", () => {
     });
 
     it("should return 401 without auth", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((_req: any, res: any) => {
+      mockBankAuth.requireBankAuth.mockImplementation((_req: Request, res: Response) => {
         res.status(401).json({ error: "Missing or invalid Authorization header" });
       });
 

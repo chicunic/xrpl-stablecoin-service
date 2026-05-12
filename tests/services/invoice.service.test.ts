@@ -27,38 +27,38 @@ describe("invoice.service", () => {
     it("should list and filter invoices by type via Firestore query", async () => {
       const userId = "user-123";
 
-      // Mock returns only issued invoices (Firestore handles filtering)
-      const mockIssuedInvoices = [
+      // Mock returns only send invoices (Firestore handles filtering)
+      const mockSendInvoices = [
         {
           invoiceId: "inv-3",
           userId,
-          type: "issued",
+          type: "send",
           createdAt: Timestamp.fromMillis(2000),
           status: "draft",
         },
         {
           invoiceId: "inv-1",
           userId,
-          type: "issued",
+          type: "send",
           createdAt: Timestamp.fromMillis(1000),
           status: "draft",
         },
       ];
 
       mockFirestoreService.get.mockResolvedValue({
-        docs: mockIssuedInvoices.map((data) => ({
+        docs: mockSendInvoices.map((data) => ({
           data: () => data,
         })),
       });
 
-      const issuedInvoices = await listInvoices(userId, "issued");
+      const sendInvoices = await listInvoices(userId, "send");
 
-      expect(issuedInvoices).toHaveLength(2);
-      expect(issuedInvoices[0]!.invoiceId).toBe("inv-3");
-      expect(issuedInvoices[1]!.invoiceId).toBe("inv-1");
+      expect(sendInvoices).toHaveLength(2);
+      expect(sendInvoices[0]?.invoiceId).toBe("inv-3");
+      expect(sendInvoices[1]?.invoiceId).toBe("inv-1");
 
       expect(mockFirestoreService.where).toHaveBeenCalledWith("userId", "==", userId);
-      expect(mockFirestoreService.where).toHaveBeenCalledWith("type", "==", "issued");
+      expect(mockFirestoreService.where).toHaveBeenCalledWith("type", "==", "send");
       expect(mockFirestoreService.orderBy).toHaveBeenCalledWith("createdAt", "desc");
     });
 
@@ -68,13 +68,13 @@ describe("invoice.service", () => {
         {
           invoiceId: "inv-2",
           userId,
-          type: "received",
+          type: "pay",
           createdAt: Timestamp.fromMillis(3000),
         },
         {
           invoiceId: "inv-1",
           userId,
-          type: "issued",
+          type: "send",
           createdAt: Timestamp.fromMillis(1000),
         },
       ];
@@ -88,8 +88,8 @@ describe("invoice.service", () => {
       const allInvoices = await listInvoices(userId);
 
       expect(allInvoices).toHaveLength(2);
-      expect(allInvoices[0]!.invoiceId).toBe("inv-2");
-      expect(allInvoices[1]!.invoiceId).toBe("inv-1");
+      expect(allInvoices[0]?.invoiceId).toBe("inv-2");
+      expect(allInvoices[1]?.invoiceId).toBe("inv-1");
     });
   });
 });

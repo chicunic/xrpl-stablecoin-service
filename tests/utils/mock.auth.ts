@@ -27,6 +27,8 @@ export const mockIdentityPlatformAuth = {
       email: "test@example.com",
       name: "Test User",
       email_verified: true,
+      auth_time: 0,
+      firebase: {},
     };
     mockIdentityPlatformAuth.verifyIdToken.mockResolvedValue(claims);
     mockIdentityPlatformAuth.verifySessionCookie.mockResolvedValue(claims);

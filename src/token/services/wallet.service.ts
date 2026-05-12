@@ -10,20 +10,20 @@ function getMnemonic(): string {
 }
 
 function derivationPath(index: number): string {
-  return `m/44'/144'/0'/0/${index}`;
+  return `m/44'/144'/0'/0/${String(index)}`;
 }
 
-async function deriveFullWallet(index: number): Promise<Wallet> {
-  const mnemonic = await getMnemonic();
+function deriveFullWallet(index: number): Wallet {
+  const mnemonic = getMnemonic();
   return Wallet.fromMnemonic(mnemonic, { derivationPath: derivationPath(index) });
 }
 
-export async function deriveWallet(index: number): Promise<{ address: string; publicKey: string }> {
-  const wallet = await deriveFullWallet(index);
+export function deriveWallet(index: number): { address: string; publicKey: string } {
+  const wallet = deriveFullWallet(index);
   return { address: wallet.address, publicKey: wallet.publicKey };
 }
 
-export async function getWalletForSigning(index: number): Promise<Wallet> {
+export function getWalletForSigning(index: number): Wallet {
   return deriveFullWallet(index);
 }
 

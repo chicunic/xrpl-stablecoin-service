@@ -33,8 +33,10 @@ describe("dex.service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetClient.mockResolvedValue(mockClient);
-    mockGetWalletForSigning.mockResolvedValue(mockWallet);
-    mockClient.autofill.mockImplementation(async (tx: any) => ({ ...tx, Sequence: 100, Fee: "12" }));
+    mockGetWalletForSigning.mockReturnValue(mockWallet);
+    mockClient.autofill.mockImplementation((tx: Record<string, unknown>) =>
+      Promise.resolve({ ...tx, Sequence: 100, Fee: "12" }),
+    );
     mockWallet.sign.mockReturnValue({ tx_blob: "mock-blob", hash: "mock-hash" });
   });
 
@@ -142,7 +144,7 @@ describe("dex.service", () => {
       );
 
       expect(orderBook.asks).toHaveLength(1);
-      expect(orderBook.asks[0].DomainID).toBe("DOMAIN123");
+      expect(orderBook.asks[0]?.DomainID).toBe("DOMAIN123");
       expect(orderBook.bids).toHaveLength(1);
     });
   });

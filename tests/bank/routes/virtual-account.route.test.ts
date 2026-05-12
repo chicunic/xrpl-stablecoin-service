@@ -1,3 +1,4 @@
+import type { NextFunction, Request, Response } from "express";
 import type express from "express";
 import { restAssert } from "../../utils/helpers";
 import { mockFirestoreService } from "../../utils/mock.index";
@@ -62,10 +63,14 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
 
   describe("POST /api/v1/accounts/me/virtual-accounts", () => {
     it("should create a virtual account for corporate account", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((req: any, _res: any, next: any) => {
-        req.bankUser = { accountId: TEST_CORPORATE_ACCOUNT_ID };
-        next();
-      });
+      mockBankAuth.requireBankAuth.mockImplementation(
+        (req: Request, _res: Response, next: NextFunction) => {
+          (req as Request & { bankUser: { accountId: string } }).bankUser = {
+            accountId: TEST_CORPORATE_ACCOUNT_ID,
+          };
+          next();
+        },
+      );
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.createVirtualAccount.mockResolvedValue(MOCK_VIRTUAL_ACCOUNT);
 
@@ -76,8 +81,9 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response, 201);
-      expect(response.body.virtualAccountId).toBe(TEST_VIRTUAL_ACCOUNT_ID);
-      expect(response.body.accountNumber).toBe("0010001");
+      const body = response.body as typeof MOCK_VIRTUAL_ACCOUNT;
+      expect(body.virtualAccountId).toBe(TEST_VIRTUAL_ACCOUNT_ID);
+      expect(body.accountNumber).toBe("0010001");
       expect(mockVirtualAccountService.createVirtualAccount).toHaveBeenCalledWith(
         TEST_CORPORATE_ACCOUNT_ID,
         "テスト用途",
@@ -97,7 +103,7 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
     });
 
     it("should return 401 without auth", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((_req: any, res: any) => {
+      mockBankAuth.requireBankAuth.mockImplementation((_req: Request, res: Response) => {
         res.status(401).json({ error: "Missing or invalid Authorization header" });
       });
 
@@ -111,10 +117,14 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
 
   describe("GET /api/v1/accounts/me/virtual-accounts", () => {
     it("should list virtual accounts for corporate account", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((req: any, _res: any, next: any) => {
-        req.bankUser = { accountId: TEST_CORPORATE_ACCOUNT_ID };
-        next();
-      });
+      mockBankAuth.requireBankAuth.mockImplementation(
+        (req: Request, _res: Response, next: NextFunction) => {
+          (req as Request & { bankUser: { accountId: string } }).bankUser = {
+            accountId: TEST_CORPORATE_ACCOUNT_ID,
+          };
+          next();
+        },
+      );
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.listVirtualAccounts.mockResolvedValue([MOCK_VIRTUAL_ACCOUNT]);
 
@@ -123,8 +133,9 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response);
-      expect(response.body).toHaveLength(1);
-      expect(response.body[0].virtualAccountId).toBe(TEST_VIRTUAL_ACCOUNT_ID);
+      const body = response.body as (typeof MOCK_VIRTUAL_ACCOUNT)[];
+      expect(body).toHaveLength(1);
+      expect(body[0]?.virtualAccountId).toBe(TEST_VIRTUAL_ACCOUNT_ID);
     });
 
     it("should return 403 for personal account", async () => {
@@ -140,10 +151,14 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
 
   describe("GET /api/v1/accounts/me/virtual-accounts/:virtualAccountId", () => {
     it("should get virtual account details", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((req: any, _res: any, next: any) => {
-        req.bankUser = { accountId: TEST_CORPORATE_ACCOUNT_ID };
-        next();
-      });
+      mockBankAuth.requireBankAuth.mockImplementation(
+        (req: Request, _res: Response, next: NextFunction) => {
+          (req as Request & { bankUser: { accountId: string } }).bankUser = {
+            accountId: TEST_CORPORATE_ACCOUNT_ID,
+          };
+          next();
+        },
+      );
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.getVirtualAccountById.mockResolvedValue(MOCK_VIRTUAL_ACCOUNT);
 
@@ -152,14 +167,19 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
       });
 
       restAssert.expectSuccess(response);
-      expect(response.body.virtualAccountId).toBe(TEST_VIRTUAL_ACCOUNT_ID);
+      const body = response.body as typeof MOCK_VIRTUAL_ACCOUNT;
+      expect(body.virtualAccountId).toBe(TEST_VIRTUAL_ACCOUNT_ID);
     });
 
     it("should return 404 for non-existent virtual account", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((req: any, _res: any, next: any) => {
-        req.bankUser = { accountId: TEST_CORPORATE_ACCOUNT_ID };
-        next();
-      });
+      mockBankAuth.requireBankAuth.mockImplementation(
+        (req: Request, _res: Response, next: NextFunction) => {
+          (req as Request & { bankUser: { accountId: string } }).bankUser = {
+            accountId: TEST_CORPORATE_ACCOUNT_ID,
+          };
+          next();
+        },
+      );
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.getVirtualAccountById.mockResolvedValue(null);
 
@@ -171,10 +191,14 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
     });
 
     it("should return 404 for virtual account owned by another corporate", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((req: any, _res: any, next: any) => {
-        req.bankUser = { accountId: TEST_CORPORATE_ACCOUNT_ID };
-        next();
-      });
+      mockBankAuth.requireBankAuth.mockImplementation(
+        (req: Request, _res: Response, next: NextFunction) => {
+          (req as Request & { bankUser: { accountId: string } }).bankUser = {
+            accountId: TEST_CORPORATE_ACCOUNT_ID,
+          };
+          next();
+        },
+      );
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.getVirtualAccountById.mockResolvedValue({
         ...MOCK_VIRTUAL_ACCOUNT,
@@ -191,10 +215,14 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
 
   describe("PATCH /api/v1/accounts/me/virtual-accounts/:virtualAccountId", () => {
     it("should update virtual account label", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((req: any, _res: any, next: any) => {
-        req.bankUser = { accountId: TEST_CORPORATE_ACCOUNT_ID };
-        next();
-      });
+      mockBankAuth.requireBankAuth.mockImplementation(
+        (req: Request, _res: Response, next: NextFunction) => {
+          (req as Request & { bankUser: { accountId: string } }).bankUser = {
+            accountId: TEST_CORPORATE_ACCOUNT_ID,
+          };
+          next();
+        },
+      );
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.getVirtualAccountById.mockResolvedValue(MOCK_VIRTUAL_ACCOUNT);
       mockVirtualAccountService.updateVirtualAccount.mockResolvedValue({
@@ -209,7 +237,8 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response);
-      expect(response.body.label).toBe("新しいラベル");
+      const body = response.body as typeof MOCK_VIRTUAL_ACCOUNT;
+      expect(body.label).toBe("新しいラベル");
       expect(mockVirtualAccountService.updateVirtualAccount).toHaveBeenCalledWith(TEST_VIRTUAL_ACCOUNT_ID, {
         label: "新しいラベル",
         isActive: undefined,
@@ -217,10 +246,14 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
     });
 
     it("should deactivate virtual account", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((req: any, _res: any, next: any) => {
-        req.bankUser = { accountId: TEST_CORPORATE_ACCOUNT_ID };
-        next();
-      });
+      mockBankAuth.requireBankAuth.mockImplementation(
+        (req: Request, _res: Response, next: NextFunction) => {
+          (req as Request & { bankUser: { accountId: string } }).bankUser = {
+            accountId: TEST_CORPORATE_ACCOUNT_ID,
+          };
+          next();
+        },
+      );
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.getVirtualAccountById.mockResolvedValue(MOCK_VIRTUAL_ACCOUNT);
       mockVirtualAccountService.updateVirtualAccount.mockResolvedValue({
@@ -235,7 +268,8 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
       );
 
       restAssert.expectSuccess(response);
-      expect(response.body.isActive).toBe(false);
+      const body = response.body as typeof MOCK_VIRTUAL_ACCOUNT & { isActive: boolean };
+      expect(body.isActive).toBe(false);
     });
 
     it("should return 403 for personal account", async () => {

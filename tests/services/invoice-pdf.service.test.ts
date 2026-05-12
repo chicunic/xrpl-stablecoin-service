@@ -1,7 +1,7 @@
 const mockJsQR = vi.fn();
 
 vi.mock("pdf-to-img", () => ({
-  pdf: vi.fn().mockImplementation(async function* () {
+  pdf: vi.fn().mockImplementation(function* () {
     // yield a minimal 1x1 PNG buffer
     yield Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -11,7 +11,7 @@ vi.mock("pdf-to-img", () => ({
 }));
 
 vi.mock("jsqr", () => ({
-  default: (...args: any[]) => mockJsQR(...args),
+  default: (...args: unknown[]) => mockJsQR(...args) as unknown,
 }));
 
 import { parseInvoicePdf } from "@token/services/invoice-pdf.service.js";

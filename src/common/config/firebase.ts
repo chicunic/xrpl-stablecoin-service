@@ -1,6 +1,6 @@
 import admin from "firebase-admin";
 
-let firestore: admin.firestore.Firestore;
+let firestore: admin.firestore.Firestore | undefined;
 
 export function initializeFirebase(): void {
   if (!admin.apps.length) {

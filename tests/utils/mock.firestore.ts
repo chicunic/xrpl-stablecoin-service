@@ -74,13 +74,13 @@ export const mockFirestoreService = {
 
     mockFirestoreService.set.mockResolvedValue(undefined);
     mockFirestoreService.update.mockResolvedValue(undefined);
-    mockFirestoreService.runTransaction.mockImplementation(async (fn: any) => {
+    mockFirestoreService.runTransaction.mockImplementation((fn: (tx: Record<string, unknown>) => unknown) => {
       const tx = {
         get: mockFirestoreService.get,
         set: vi.fn(),
         update: vi.fn(),
       };
-      return fn(tx);
+      return Promise.resolve(fn(tx));
     });
   },
   reset: () => {

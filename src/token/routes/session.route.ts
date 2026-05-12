@@ -8,7 +8,7 @@ const router: RouterType = Router();
 const SESSION_EXPIRES_IN = 14 * 24 * 60 * 60 * 1000; // 14 days
 const AUTH_TIME_MAX_AGE = 5 * 60; // 5 minutes
 
-router.post("/session/login", async (req: Request, res: Response) => {
+router.post("/session/login", async (req: Request, res: Response<unknown>) => {
   try {
     const { idToken } = req.body as { idToken?: string };
     if (!idToken) {
@@ -17,7 +17,7 @@ router.post("/session/login", async (req: Request, res: Response) => {
     }
 
     const decoded = await getProjectAuth().verifyIdToken(idToken);
-    const authTime = (decoded.auth_time as number) ?? 0;
+    const authTime = decoded.auth_time;
     const now = Math.floor(Date.now() / 1000);
     if (now - authTime > AUTH_TIME_MAX_AGE) {
       res.status(401).json({ error: "Recent sign-in required" });
@@ -34,7 +34,7 @@ router.post("/session/login", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/session/refresh", async (req: Request, res: Response) => {
+router.post("/session/refresh", async (req: Request, res: Response<unknown>) => {
   try {
     const authHeader = req.headers.authorization;
     const existingSession = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
@@ -62,7 +62,7 @@ router.post("/session/refresh", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/session/logout", (_req: Request, res: Response) => {
+router.post("/session/logout", (_req: Request, res: Response<unknown>) => {
   res.json({ status: "ok" });
 });
 

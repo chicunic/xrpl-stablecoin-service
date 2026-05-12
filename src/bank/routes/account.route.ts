@@ -19,7 +19,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.post("/accounts", async (req: Request, res: Response) => {
+router.post("/accounts", async (req: Request, res: Response<unknown>) => {
   try {
     const { pin, accountHolder, accountType } = req.body as {
       pin: string;
@@ -35,7 +35,7 @@ router.post("/accounts", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/accounts/login", async (req: Request, res: Response) => {
+router.post("/accounts/login", async (req: Request, res: Response<unknown>) => {
   try {
     const { branchCode, accountNumber, pin } = req.body as {
       branchCode: string;
@@ -44,9 +44,10 @@ router.post("/accounts/login", async (req: Request, res: Response) => {
     };
 
     const account = await login(branchCode, accountNumber, pin);
-    const token = await generateToken(account.accountId);
+    const token = generateToken(account.accountId);
 
-    const { pin: _, ...safeAccount } = account;
+    const { pin: _pin, ...safeAccount } = account;
+    void _pin;
 
     res.json({ token, account: safeAccount });
   } catch (error) {
@@ -54,11 +55,11 @@ router.post("/accounts/login", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/accounts/logout", (_req: Request, res: Response) => {
+router.post("/accounts/logout", (_req: Request, res: Response<unknown>) => {
   res.json({ message: "Logged out" });
 });
 
-router.get("/accounts/lookup", async (req: Request, res: Response) => {
+router.get("/accounts/lookup", async (req: Request, res: Response<unknown>) => {
   try {
     const branchCode = req.query.branchCode as string;
     const accountNumber = req.query.accountNumber as string;
@@ -81,7 +82,7 @@ router.get("/accounts/lookup", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/accounts/me", requireBankAuth, rejectApiToken, async (req, res: Response) => {
+router.get("/accounts/me", requireBankAuth, rejectApiToken, async (req, res: Response<unknown>) => {
   try {
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
     const account = await getAccountById(accountId);
@@ -91,14 +92,15 @@ router.get("/accounts/me", requireBankAuth, rejectApiToken, async (req, res: Res
       return;
     }
 
-    const { pin: _, ...safeAccount } = account;
+    const { pin: _pin, ...safeAccount } = account;
+    void _pin;
     res.json(safeAccount);
   } catch (error) {
     handleRouteError(error, res, "GET /accounts/me");
   }
 });
 
-router.post("/accounts/me/api-token", requireBankAuth, rejectApiToken, async (req, res: Response) => {
+router.post("/accounts/me/api-token", requireBankAuth, rejectApiToken, async (req, res: Response<unknown>) => {
   try {
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
     const account = await getAccountById(accountId);
@@ -113,14 +115,14 @@ router.post("/accounts/me/api-token", requireBankAuth, rejectApiToken, async (re
       return;
     }
 
-    const apiToken = await generateApiToken(accountId);
+    const apiToken = generateApiToken(accountId);
     res.json({ token: apiToken });
   } catch (error) {
     handleRouteError(error, res, "POST /accounts/me/api-token");
   }
 });
 
-router.patch("/accounts/me", requireBankAuth, rejectApiToken, async (req, res: Response) => {
+router.patch("/accounts/me", requireBankAuth, rejectApiToken, async (req, res: Response<unknown>) => {
   try {
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
     const { accountHolder, pin, oldPin, pubsubEnabled } = req.body as {

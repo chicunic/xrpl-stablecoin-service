@@ -1,9 +1,5 @@
-packages:
-  - .
-
-onlyBuiltDependencies:
-  - '@firebase/util'
-  - '@scarf/scarf'
-  - esbuild
-  - protobufjs
-  - unrs-resolver
+allowBuilds:
+  '@firebase/util': true
+  '@scarf/scarf': false
+  esbuild: true
+  protobufjs: true

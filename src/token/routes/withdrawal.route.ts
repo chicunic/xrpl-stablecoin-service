@@ -13,7 +13,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.post("/withdraw/fiat", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response) => {
+router.post("/withdraw/fiat", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const { amount, bankAccount } = req.body as {
@@ -28,7 +28,7 @@ router.post("/withdraw/fiat", requireAuth, requireKyc, requireMfa, requireOperat
   }
 });
 
-router.post("/withdraw/xrp", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response) => {
+router.post("/withdraw/xrp", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const { tokenId, tokenAmount, destinationAddress } = req.body as {

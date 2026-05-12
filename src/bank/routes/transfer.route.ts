@@ -1,13 +1,13 @@
 import { type BankAuthenticatedRequest, requireBankAuth } from "@bank/middleware/bank-auth.js";
 import { verifyPin } from "@bank/services/account.service.js";
 import { transfer } from "@bank/services/transfer.service.js";
-import { handleRouteError, ValidationError } from "@common/utils/error.handler.js";
+import { ValidationError, handleRouteError } from "@common/utils/error.handler.js";
 import type { Response, Router as RouterType } from "express";
 import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.post("/transfers", requireBankAuth, async (req, res: Response) => {
+router.post("/transfers", requireBankAuth, async (req, res: Response<unknown>) => {
   try {
     const { accountId, tokenType } = (req as BankAuthenticatedRequest).bankUser;
     const { toBranchCode, toAccountNumber, amount, pin, idempotencyKey } = req.body as {

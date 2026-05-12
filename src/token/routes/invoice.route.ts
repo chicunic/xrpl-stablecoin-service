@@ -28,7 +28,7 @@ const upload = multer({
 
 const router: RouterType = Router();
 
-router.post("/invoices/pay/parse-pdf", requireAuth, upload.single("pdf"), async (req, res: Response) => {
+router.post("/invoices/pay/parse-pdf", requireAuth, upload.single("pdf"), async (req, res: Response<unknown>) => {
   try {
     if (!req.file) {
       res.status(400).json({ error: "PDF file is required" });
@@ -42,7 +42,7 @@ router.post("/invoices/pay/parse-pdf", requireAuth, upload.single("pdf"), async 
 });
 
 /** Send an invoice to someone */
-router.post("/invoices/send", requireAuth, requireKyc, async (req, res: Response) => {
+router.post("/invoices/send", requireAuth, requireKyc, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const invoice = await sendInvoice(uid, req.body as InvoiceData);
@@ -53,7 +53,7 @@ router.post("/invoices/send", requireAuth, requireKyc, async (req, res: Response
 });
 
 /** Pay a received invoice */
-router.post("/invoices/pay", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response) => {
+router.post("/invoices/pay", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const invoice = await payInvoice(uid, req.body as InvoiceData);
@@ -63,7 +63,7 @@ router.post("/invoices/pay", requireAuth, requireKyc, requireMfa, requireOperati
   }
 });
 
-router.get("/invoices", requireAuth, async (req, res: Response) => {
+router.get("/invoices", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const type = req.query.type as InvoiceType | undefined;
@@ -74,7 +74,7 @@ router.get("/invoices", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.get("/invoices/:invoiceId", requireAuth, async (req, res: Response) => {
+router.get("/invoices/:invoiceId", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const invoice = await getInvoice(uid, req.params.invoiceId as string);
@@ -84,7 +84,7 @@ router.get("/invoices/:invoiceId", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.post("/invoices/:invoiceId/cancel", requireAuth, async (req, res: Response) => {
+router.post("/invoices/:invoiceId/cancel", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const invoice = await cancelInvoice(uid, req.params.invoiceId as string);

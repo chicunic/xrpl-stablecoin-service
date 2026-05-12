@@ -6,7 +6,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.get("/users/me", requireAuth, async (req, res: Response) => {
+router.get("/users/me", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid, email, name } = (req as AuthenticatedRequest).user;
     const user = await getOrCreateUser(uid, email, name);
@@ -16,7 +16,7 @@ router.get("/users/me", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.post("/users/me/wallet", requireAuth, async (req, res: Response) => {
+router.post("/users/me/wallet", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const wallet = await setupWallet(uid);
@@ -26,7 +26,7 @@ router.post("/users/me/wallet", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.get("/users/me/virtual-account", requireAuth, async (req, res: Response) => {
+router.get("/users/me/virtual-account", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const va = await getVirtualAccount(uid);
@@ -40,7 +40,7 @@ router.get("/users/me/virtual-account", requireAuth, async (req, res: Response) 
   }
 });
 
-router.post("/users/me/virtual-account", requireAuth, async (req, res: Response) => {
+router.post("/users/me/virtual-account", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const virtualAccount = await setupVirtualAccount(uid);

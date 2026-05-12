@@ -32,7 +32,7 @@ async function atmTransaction(
       throw new NotFoundError("Account not found");
     }
 
-    const account = accountDoc.data()!;
+    const account = accountDoc.data() as FirebaseFirestore.DocumentData;
     const currentBalance = account.balance as number;
 
     if (type === "atm_out" && currentBalance < amount) {
@@ -88,7 +88,7 @@ export async function transfer(
     const idempotencyRef = db.collection("bank_processed_transfers").doc(idempotencyKey);
     const existing = await idempotencyRef.get();
     if (existing.exists) {
-      const data = existing.data()!;
+      const data = existing.data() as FirebaseFirestore.DocumentData;
       return { balance: data.balance as number, transactionId: data.transactionId as string };
     }
   }
@@ -130,8 +130,8 @@ export async function transfer(
       throw new ValidationError("Invalid: destination account not found");
     }
 
-    const fromData = fromDoc.data()!;
-    const toData = toDoc.data()!;
+    const fromData = fromDoc.data() as FirebaseFirestore.DocumentData;
+    const toData = toDoc.data() as FirebaseFirestore.DocumentData;
 
     const fromBalance = fromData.balance as number;
     if (fromBalance < amount) {
@@ -226,7 +226,7 @@ export async function transfer(
     if (virtualAccountNumber) {
       messageData.virtualAccountNumber = virtualAccountNumber;
     }
-    publishMessage(BANK_DEPOSIT_TOPIC, messageData).catch((err) => {
+    publishMessage(BANK_DEPOSIT_TOPIC, messageData).catch((err: unknown) => {
       console.error("Failed to publish bank deposit event:", err);
     });
   }

@@ -45,7 +45,7 @@ export async function withdrawFiat(
     txReference = await initiateBankTransfer(bankAccount, amount, idempotencyKey);
   } catch (error) {
     // Bank transfer failed: refund the deducted balance
-    console.error(`Bank transfer failed for user ${userId}, refunding ${amount}:`, error);
+    console.error(`Bank transfer failed for user ${userId}, refunding ${String(amount)}:`, error);
     await creditFiat(userId, amount, "refund", "JPY 出金 返金");
     throw error;
   }
@@ -122,7 +122,7 @@ export async function withdrawXrp(
 
 async function initiateBankTransfer(bankAccount: BankAccount, amount: number, idempotencyKey: string): Promise<string> {
   const bankServiceUrl = getBankServiceUrl();
-  const bankAuthToken = await getBankAuthToken();
+  const bankAuthToken = getBankAuthToken();
   const url = `${bankServiceUrl}/api/v1/transfers`;
   const response = await fetch(url, {
     method: "POST",
@@ -139,7 +139,7 @@ async function initiateBankTransfer(bankAccount: BankAccount, amount: number, id
   });
 
   if (!response.ok) {
-    throw new Error(`Bank transfer failed: ${response.status}`);
+    throw new Error(`Bank transfer failed: ${String(response.status)}`);
   }
 
   const data = (await response.json()) as { transactionId: string };

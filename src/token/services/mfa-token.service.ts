@@ -22,7 +22,7 @@ function sign(payload: string, secret: string): string {
   return createHmac("sha256", secret).update(payload).digest("base64url");
 }
 
-export async function generateMfaToken(uid: string): Promise<string> {
+export function generateMfaToken(uid: string): string {
   const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "MFA" }));
   const now = Math.floor(Date.now() / 1000);
   const payload = base64UrlEncode(
@@ -32,18 +32,18 @@ export async function generateMfaToken(uid: string): Promise<string> {
       exp: now + MFA_TOKEN_TTL,
     }),
   );
-  const signature = sign(`${header}.${payload}`, await getMfaSecret());
+  const signature = sign(`${header}.${payload}`, getMfaSecret());
   return `${header}.${payload}.${signature}`;
 }
 
-export async function verifyMfaToken(token: string, expectedUid: string): Promise<void> {
+export function verifyMfaToken(token: string, expectedUid: string): void {
   const parts = token.split(".");
   if (parts.length !== 3) {
     throw new Error("Invalid MFA token format");
   }
 
   const [header, payload, signature] = parts as [string, string, string];
-  const expectedSignature = sign(`${header}.${payload}`, await getMfaSecret());
+  const expectedSignature = sign(`${header}.${payload}`, getMfaSecret());
 
   const sigBuffer = Buffer.from(signature);
   const expectedBuffer = Buffer.from(expectedSignature);

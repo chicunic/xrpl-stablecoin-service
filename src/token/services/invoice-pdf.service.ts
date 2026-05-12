@@ -46,12 +46,12 @@ export async function parseInvoicePdf(buffer: Buffer): Promise<ParsedInvoiceData
   }
 
   return {
-    tokenId: String(data.tokenId),
+    tokenId: data.tokenId as string,
     amount: Number(data.amount),
-    recipientAddress: String(data.recipientAddress),
-    recipientName: String(data.recipientName),
-    description: String(data.description),
-    ...(data.dueDate ? { dueDate: String(data.dueDate) } : {}),
-    ...(data.invoiceId ? { invoiceId: String(data.invoiceId) } : {}),
+    recipientAddress: data.recipientAddress as string,
+    recipientName: data.recipientName as string,
+    description: data.description as string,
+    ...(data.dueDate ? { dueDate: data.dueDate as string } : {}),
+    ...(data.invoiceId ? { invoiceId: data.invoiceId as string } : {}),
   };
 }

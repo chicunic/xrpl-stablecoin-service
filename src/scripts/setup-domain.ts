@@ -11,7 +11,7 @@ async function main() {
   console.log("JPYN Token Config:");
   console.log(`  Issuer: ${config.issuerAddress}`);
   console.log(`  Domain ID env: ${config.permissionedDomainId || "(not set)"}`);
-  console.log(`  Accepted Credentials: ${config.acceptedCredentials.length}`);
+  console.log(`  Accepted Credentials: ${String(config.acceptedCredentials.length)}`);
 
   if (config.permissionedDomainId) {
     console.log("\nQuerying existing domain...");
@@ -34,7 +34,7 @@ async function main() {
   await disconnect();
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   console.error("Setup failed:", err);
   process.exit(1);
 });

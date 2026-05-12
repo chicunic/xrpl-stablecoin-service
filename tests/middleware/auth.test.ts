@@ -25,8 +25,8 @@ describe("requireAuth middleware", () => {
 
     mockReq = { headers: {} };
     mockRes = {
-      status: vi.fn().mockReturnThis() as any,
-      json: vi.fn().mockReturnThis() as any,
+      status: vi.fn().mockReturnThis() as Response["status"],
+      json: vi.fn().mockReturnThis() as Response["json"],
     };
     mockNext = vi.fn();
   });
@@ -89,6 +89,8 @@ describe("requireAuth middleware", () => {
       email: "test@example.com",
       name: "Test User",
       email_verified: true,
+      auth_time: 0,
+      firebase: {},
     });
 
     await requireAuth(mockReq as Request, mockRes as Response, mockNext);
@@ -129,8 +131,8 @@ describe("requireMfa middleware", () => {
   beforeEach(() => {
     mockReq = { headers: {} };
     mockRes = {
-      status: vi.fn().mockReturnThis() as any,
-      json: vi.fn().mockReturnThis() as any,
+      status: vi.fn().mockReturnThis() as Response["status"],
+      json: vi.fn().mockReturnThis() as Response["json"],
     };
     mockNext = vi.fn();
   });
@@ -141,7 +143,9 @@ describe("requireMfa middleware", () => {
       email: "test@example.com",
       name: "Test User",
       mfaVerified: false,
-    } as any;
+      kycStatus: "none",
+      authTime: 0,
+    };
 
     requireMfa(mockReq as Request, mockRes as Response, mockNext);
 
@@ -156,7 +160,9 @@ describe("requireMfa middleware", () => {
       email: "test@example.com",
       name: "Test User",
       mfaVerified: true,
-    } as any;
+      kycStatus: "approved",
+      authTime: Math.floor(Date.now() / 1000),
+    };
 
     requireMfa(mockReq as Request, mockRes as Response, mockNext);
 
@@ -172,8 +178,8 @@ describe("requireKyc middleware", () => {
   beforeEach(() => {
     mockReq = { headers: {} };
     mockRes = {
-      status: vi.fn().mockReturnThis() as any,
-      json: vi.fn().mockReturnThis() as any,
+      status: vi.fn().mockReturnThis() as Response["status"],
+      json: vi.fn().mockReturnThis() as Response["json"],
     };
     mockNext = vi.fn();
   });
@@ -202,7 +208,8 @@ describe("requireKyc middleware", () => {
       name: "Test User",
       mfaVerified: true,
       kycStatus: "approved",
-    } as any;
+      authTime: Math.floor(Date.now() / 1000),
+    };
 
     requireKyc(mockReq as Request, mockRes as Response, mockNext);
 
@@ -221,13 +228,13 @@ describe("requireOperationMfa middleware", () => {
       headers: {},
     };
     mockRes = {
-      status: vi.fn().mockReturnThis() as any,
-      json: vi.fn().mockReturnThis() as any,
+      status: vi.fn().mockReturnThis() as Response["status"],
+      json: vi.fn().mockReturnThis() as Response["json"],
     };
     mockNext = vi.fn();
   });
 
-  it("should return 403 if no X-MFA-Token header", async () => {
+  it("should return 403 if no X-MFA-Token header", () => {
     (mockReq as AuthenticatedRequest).user = {
       uid: "google-uid-123456",
       email: "test@example.com",
@@ -237,14 +244,14 @@ describe("requireOperationMfa middleware", () => {
       authTime: Math.floor(Date.now() / 1000),
     };
 
-    await requireOperationMfa(mockReq as Request, mockRes as Response, mockNext);
+    requireOperationMfa(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(403);
     expect(mockRes.json).toHaveBeenCalledWith({ error: "MFA verification required", code: "MFA_REQUIRED" });
     expect(mockNext).not.toHaveBeenCalled();
   });
 
-  it("should return 403 if token verification fails", async () => {
+  it("should return 403 if token verification fails", () => {
     (mockReq as AuthenticatedRequest).user = {
       uid: "google-uid-123456",
       email: "test@example.com",
@@ -254,16 +261,18 @@ describe("requireOperationMfa middleware", () => {
       authTime: Math.floor(Date.now() / 1000),
     };
     mockReq.headers = { "x-mfa-token": "invalid-token" };
-    mockVerifyMfaToken.mockRejectedValue(new Error("Invalid MFA token"));
+    mockVerifyMfaToken.mockImplementation(() => {
+      throw new Error("Invalid MFA token");
+    });
 
-    await requireOperationMfa(mockReq as Request, mockRes as Response, mockNext);
+    requireOperationMfa(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockRes.status).toHaveBeenCalledWith(403);
     expect(mockRes.json).toHaveBeenCalledWith({ error: "MFA verification required", code: "MFA_REQUIRED" });
     expect(mockNext).not.toHaveBeenCalled();
   });
 
-  it("should call next on valid token", async () => {
+  it("should call next on valid token", () => {
     (mockReq as AuthenticatedRequest).user = {
       uid: "google-uid-123456",
       email: "test@example.com",
@@ -273,9 +282,9 @@ describe("requireOperationMfa middleware", () => {
       authTime: Math.floor(Date.now() / 1000),
     };
     mockReq.headers = { "x-mfa-token": "valid-mfa-token" };
-    mockVerifyMfaToken.mockResolvedValue(undefined);
+    mockVerifyMfaToken.mockReturnValue(undefined);
 
-    await requireOperationMfa(mockReq as Request, mockRes as Response, mockNext);
+    requireOperationMfa(mockReq as Request, mockRes as Response, mockNext);
 
     expect(mockVerifyMfaToken).toHaveBeenCalledWith("valid-mfa-token", "google-uid-123456");
     expect(mockNext).toHaveBeenCalled();

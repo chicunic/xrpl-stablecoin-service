@@ -10,7 +10,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.get("/balance/fiat", requireAuth, async (req, res: Response) => {
+router.get("/balance/fiat", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const balance = await getFiatBalance(uid);
@@ -20,7 +20,7 @@ router.get("/balance/fiat", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.get("/balance/xrp", requireAuth, async (req, res: Response) => {
+router.get("/balance/xrp", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const wallet = await getUserWallet(uid);
@@ -37,7 +37,7 @@ router.get("/balance/xrp", requireAuth, async (req, res: Response) => {
   }
 });
 
-router.get("/balance/fiat/transactions", requireAuth, async (req, res: Response) => {
+router.get("/balance/fiat/transactions", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const transactions = await getFiatTransactions(uid);
@@ -47,7 +47,7 @@ router.get("/balance/fiat/transactions", requireAuth, async (req, res: Response)
   }
 });
 
-router.get("/balance/xrp/transactions", requireAuth, async (req, res: Response) => {
+router.get("/balance/xrp/transactions", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
     const transactions = await getXrpTransactions(uid);
@@ -57,7 +57,7 @@ router.get("/balance/xrp/transactions", requireAuth, async (req, res: Response) 
   }
 });
 
-router.get("/balance/trustlines", requireAuth, async (req, res: Response) => {
+router.get("/balance/trustlines", requireAuth, async (req, res: Response<unknown>) => {
   try {
     const { uid } = (req as AuthenticatedRequest).user;
 

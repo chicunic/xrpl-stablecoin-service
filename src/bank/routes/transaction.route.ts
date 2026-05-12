@@ -6,7 +6,7 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.get("/transactions", requireBankAuth, async (req, res: Response) => {
+router.get("/transactions", requireBankAuth, async (req, res: Response<unknown>) => {
   try {
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
     const transactions = await getTransactionsByAccount(accountId);

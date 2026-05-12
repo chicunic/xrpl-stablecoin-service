@@ -1,7 +1,7 @@
 import type express from "express";
 import { restAssert } from "./utils/helpers";
 import { mockFirestoreService, mockIdentityPlatformAuth } from "./utils/mock.index";
-import { createCompleteTestApp, RestTestHelper } from "./utils/server.rest";
+import { RestTestHelper, createCompleteTestApp } from "./utils/server.rest";
 
 // Mock bank config to avoid real Secret Manager calls
 vi.mock("../src/token/config/bank", () => ({
@@ -30,8 +30,9 @@ describe("Health Check - REST API", () => {
       const response = await helper.get("/health");
 
       restAssert.expectSuccess(response);
-      expect(response.body.status).toBe("ok");
-      expect(response.body.timestamp).toBeDefined();
+      const body = response.body as { status: string; timestamp: string };
+      expect(body.status).toBe("ok");
+      expect(body.timestamp).toBeDefined();
     });
   });
 });
