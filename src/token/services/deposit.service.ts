@@ -36,7 +36,7 @@ export async function processBankDeposit(
       throw new Error(`User document not found: ${user.uid}`);
     }
 
-    const currentBalance = ((userDoc.data() as FirebaseFirestore.DocumentData).fiatBalance as number | undefined) ?? 0;
+    const currentBalance = (userDoc.data()?.fiatBalance as number | undefined) ?? 0;
     const newBalance = currentBalance + amount;
 
     tx.update(userRef, { fiatBalance: newBalance });

@@ -113,9 +113,7 @@ export async function deleteDomain(domainId: string): Promise<string> {
   return extractTxHash(result);
 }
 
-interface DomainNode {
-  [key: string]: unknown;
-}
+type DomainNode = Record<string, unknown>;
 
 export async function getDomainInfo(domainId: string): Promise<DomainNode | null> {
   const xrplClient = await getClient();

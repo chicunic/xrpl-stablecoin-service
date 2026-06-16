@@ -1,8 +1,8 @@
 # XRPL Stablecoin Service
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D25-green.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D26-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-blue.svg)](https://www.typescriptlang.org/)
 [![XRPL](https://img.shields.io/badge/XRPL-Mainnet-black.svg)](https://xrpl.org/)
 
 A production-grade stablecoin issuance platform on the [XRP Ledger](https://xrpl.org/). The system enables 1:1 fiat-backed token minting, redemption, and custody through two cooperating microservices deployed on Google Cloud Run.

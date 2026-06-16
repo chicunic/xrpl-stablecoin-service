@@ -69,11 +69,7 @@ export class BankRestTestHelper {
     return request(this.app);
   }
 
-  async post(
-    url: string,
-    data: Record<string, unknown>,
-    headers?: Record<string, string>,
-  ): Promise<Response> {
+  async post(url: string, data: Record<string, unknown>, headers?: Record<string, string>): Promise<Response> {
     const req = this.request.post(url).send(data);
     if (headers) {
       for (const [key, value] of Object.entries(headers)) req.set(key, value);
@@ -89,11 +85,7 @@ export class BankRestTestHelper {
     return req;
   }
 
-  async patch(
-    url: string,
-    data: Record<string, unknown>,
-    headers?: Record<string, string>,
-  ): Promise<Response> {
+  async patch(url: string, data: Record<string, unknown>, headers?: Record<string, string>): Promise<Response> {
     const req = this.request.patch(url).send(data);
     if (headers) {
       for (const [key, value] of Object.entries(headers)) req.set(key, value);

@@ -20,9 +20,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Force devnet
-if (!process.env.XRPL_NETWORK) {
-  process.env.XRPL_NETWORK = "devnet";
-}
+process.env.XRPL_NETWORK ??= "devnet";
 
 import { getTokenConfig, toXrplCurrency } from "@token/config/tokens.js";
 import {
@@ -177,10 +175,7 @@ async function main(): Promise<void> {
   assert(domainInfo !== null, `Domain info retrieved`);
   if (domainInfo) {
     const acceptedCreds = domainInfo.AcceptedCredentials as unknown[] | undefined;
-    assert(
-      (acceptedCreds?.length ?? 0) > 0,
-      `Domain has ${String(acceptedCreds?.length ?? 0)} accepted credential(s)`,
-    );
+    assert((acceptedCreds?.length ?? 0) > 0, `Domain has ${String(acceptedCreds?.length ?? 0)} accepted credential(s)`);
   }
 
   // -- Step 8: Set up TrustLine for user (needed for DEX offers) --

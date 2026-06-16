@@ -63,14 +63,12 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
 
   describe("POST /api/v1/accounts/me/virtual-accounts", () => {
     it("should create a virtual account for corporate account", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation(
-        (req: Request, _res: Response, next: NextFunction) => {
-          (req as Request & { bankUser: { accountId: string } }).bankUser = {
-            accountId: TEST_CORPORATE_ACCOUNT_ID,
-          };
-          next();
-        },
-      );
+      mockBankAuth.requireBankAuth.mockImplementation((req: Request, _res: Response, next: NextFunction) => {
+        (req as Request & { bankUser: { accountId: string } }).bankUser = {
+          accountId: TEST_CORPORATE_ACCOUNT_ID,
+        };
+        next();
+      });
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.createVirtualAccount.mockResolvedValue(MOCK_VIRTUAL_ACCOUNT);
 
@@ -117,14 +115,12 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
 
   describe("GET /api/v1/accounts/me/virtual-accounts", () => {
     it("should list virtual accounts for corporate account", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation(
-        (req: Request, _res: Response, next: NextFunction) => {
-          (req as Request & { bankUser: { accountId: string } }).bankUser = {
-            accountId: TEST_CORPORATE_ACCOUNT_ID,
-          };
-          next();
-        },
-      );
+      mockBankAuth.requireBankAuth.mockImplementation((req: Request, _res: Response, next: NextFunction) => {
+        (req as Request & { bankUser: { accountId: string } }).bankUser = {
+          accountId: TEST_CORPORATE_ACCOUNT_ID,
+        };
+        next();
+      });
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.listVirtualAccounts.mockResolvedValue([MOCK_VIRTUAL_ACCOUNT]);
 
@@ -151,14 +147,12 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
 
   describe("GET /api/v1/accounts/me/virtual-accounts/:virtualAccountId", () => {
     it("should get virtual account details", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation(
-        (req: Request, _res: Response, next: NextFunction) => {
-          (req as Request & { bankUser: { accountId: string } }).bankUser = {
-            accountId: TEST_CORPORATE_ACCOUNT_ID,
-          };
-          next();
-        },
-      );
+      mockBankAuth.requireBankAuth.mockImplementation((req: Request, _res: Response, next: NextFunction) => {
+        (req as Request & { bankUser: { accountId: string } }).bankUser = {
+          accountId: TEST_CORPORATE_ACCOUNT_ID,
+        };
+        next();
+      });
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.getVirtualAccountById.mockResolvedValue(MOCK_VIRTUAL_ACCOUNT);
 
@@ -172,14 +166,12 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
     });
 
     it("should return 404 for non-existent virtual account", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation(
-        (req: Request, _res: Response, next: NextFunction) => {
-          (req as Request & { bankUser: { accountId: string } }).bankUser = {
-            accountId: TEST_CORPORATE_ACCOUNT_ID,
-          };
-          next();
-        },
-      );
+      mockBankAuth.requireBankAuth.mockImplementation((req: Request, _res: Response, next: NextFunction) => {
+        (req as Request & { bankUser: { accountId: string } }).bankUser = {
+          accountId: TEST_CORPORATE_ACCOUNT_ID,
+        };
+        next();
+      });
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.getVirtualAccountById.mockResolvedValue(null);
 
@@ -191,14 +183,12 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
     });
 
     it("should return 404 for virtual account owned by another corporate", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation(
-        (req: Request, _res: Response, next: NextFunction) => {
-          (req as Request & { bankUser: { accountId: string } }).bankUser = {
-            accountId: TEST_CORPORATE_ACCOUNT_ID,
-          };
-          next();
-        },
-      );
+      mockBankAuth.requireBankAuth.mockImplementation((req: Request, _res: Response, next: NextFunction) => {
+        (req as Request & { bankUser: { accountId: string } }).bankUser = {
+          accountId: TEST_CORPORATE_ACCOUNT_ID,
+        };
+        next();
+      });
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.getVirtualAccountById.mockResolvedValue({
         ...MOCK_VIRTUAL_ACCOUNT,
@@ -215,14 +205,12 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
 
   describe("PATCH /api/v1/accounts/me/virtual-accounts/:virtualAccountId", () => {
     it("should update virtual account label", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation(
-        (req: Request, _res: Response, next: NextFunction) => {
-          (req as Request & { bankUser: { accountId: string } }).bankUser = {
-            accountId: TEST_CORPORATE_ACCOUNT_ID,
-          };
-          next();
-        },
-      );
+      mockBankAuth.requireBankAuth.mockImplementation((req: Request, _res: Response, next: NextFunction) => {
+        (req as Request & { bankUser: { accountId: string } }).bankUser = {
+          accountId: TEST_CORPORATE_ACCOUNT_ID,
+        };
+        next();
+      });
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.getVirtualAccountById.mockResolvedValue(MOCK_VIRTUAL_ACCOUNT);
       mockVirtualAccountService.updateVirtualAccount.mockResolvedValue({
@@ -246,14 +234,12 @@ describe("Bank Virtual Account Routes - REST API Integration", () => {
     });
 
     it("should deactivate virtual account", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation(
-        (req: Request, _res: Response, next: NextFunction) => {
-          (req as Request & { bankUser: { accountId: string } }).bankUser = {
-            accountId: TEST_CORPORATE_ACCOUNT_ID,
-          };
-          next();
-        },
-      );
+      mockBankAuth.requireBankAuth.mockImplementation((req: Request, _res: Response, next: NextFunction) => {
+        (req as Request & { bankUser: { accountId: string } }).bankUser = {
+          accountId: TEST_CORPORATE_ACCOUNT_ID,
+        };
+        next();
+      });
       mockAccountService.getAccountById.mockResolvedValue(MOCK_CORPORATE_ACCOUNT);
       mockVirtualAccountService.getVirtualAccountById.mockResolvedValue(MOCK_VIRTUAL_ACCOUNT);
       mockVirtualAccountService.updateVirtualAccount.mockResolvedValue({

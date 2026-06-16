@@ -13,35 +13,49 @@ import { Router } from "express";
 
 const router: RouterType = Router();
 
-router.post("/withdraw/fiat", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const { amount, bankAccount } = req.body as {
-      amount: number;
-      bankAccount: BankAccount;
-    };
+router.post(
+  "/withdraw/fiat",
+  requireAuth,
+  requireKyc,
+  requireMfa,
+  requireOperationMfa,
+  async (req, res: Response<unknown>) => {
+    try {
+      const { uid } = (req as AuthenticatedRequest).user;
+      const { amount, bankAccount } = req.body as {
+        amount: number;
+        bankAccount: BankAccount;
+      };
 
-    const result = await withdrawFiat(uid, amount, bankAccount);
-    res.status(201).json(result);
-  } catch (error) {
-    handleRouteError(error, res, "POST /withdraw/fiat");
-  }
-});
+      const result = await withdrawFiat(uid, amount, bankAccount);
+      res.status(201).json(result);
+    } catch (error) {
+      handleRouteError(error, res, "POST /withdraw/fiat");
+    }
+  },
+);
 
-router.post("/withdraw/xrp", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const { tokenId, tokenAmount, destinationAddress } = req.body as {
-      tokenId: string;
-      tokenAmount: number;
-      destinationAddress: string;
-    };
+router.post(
+  "/withdraw/xrp",
+  requireAuth,
+  requireKyc,
+  requireMfa,
+  requireOperationMfa,
+  async (req, res: Response<unknown>) => {
+    try {
+      const { uid } = (req as AuthenticatedRequest).user;
+      const { tokenId, tokenAmount, destinationAddress } = req.body as {
+        tokenId: string;
+        tokenAmount: number;
+        destinationAddress: string;
+      };
 
-    const result = await withdrawXrp(uid, tokenId, tokenAmount, destinationAddress);
-    res.status(201).json(result);
-  } catch (error) {
-    handleRouteError(error, res, "POST /withdraw/xrp");
-  }
-});
+      const result = await withdrawXrp(uid, tokenId, tokenAmount, destinationAddress);
+      res.status(201).json(result);
+    } catch (error) {
+      handleRouteError(error, res, "POST /withdraw/xrp");
+    }
+  },
+);
 
 export default router;

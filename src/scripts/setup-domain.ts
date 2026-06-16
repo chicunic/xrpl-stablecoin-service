@@ -10,7 +10,8 @@ async function main() {
   const config = getTokenConfig("JPYN");
   console.log("JPYN Token Config:");
   console.log(`  Issuer: ${config.issuerAddress}`);
-  console.log(`  Domain ID env: ${config.permissionedDomainId || "(not set)"}`);
+  const domainIdDisplay = config.permissionedDomainId === "" ? "(not set)" : config.permissionedDomainId;
+  console.log(`  Domain ID env: ${domainIdDisplay}`);
   console.log(`  Accepted Credentials: ${String(config.acceptedCredentials.length)}`);
 
   if (config.permissionedDomainId) {

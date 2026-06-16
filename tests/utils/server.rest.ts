@@ -86,11 +86,7 @@ export class RestTestHelper {
     return req;
   }
 
-  async post(
-    url: string,
-    data: Record<string, unknown>,
-    headers?: Record<string, string>,
-  ): Promise<Response> {
+  async post(url: string, data: Record<string, unknown>, headers?: Record<string, string>): Promise<Response> {
     const req = this.request.post(url).send(data);
     return this.applyHeaders(req, headers);
   }
@@ -105,11 +101,7 @@ export class RestTestHelper {
     return this.applyHeaders(req, headers);
   }
 
-  async patch(
-    url: string,
-    data: Record<string, unknown>,
-    headers?: Record<string, string>,
-  ): Promise<Response> {
+  async patch(url: string, data: Record<string, unknown>, headers?: Record<string, string>): Promise<Response> {
     const req = this.request.patch(url).send(data);
     return this.applyHeaders(req, headers);
   }

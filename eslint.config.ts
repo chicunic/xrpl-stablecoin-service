@@ -7,7 +7,12 @@ import vitest from "@vitest/eslint-plugin";
 export default defineConfig([
   {
     files: ["src/**/*.ts"],
-    extends: [eslint.configs.recommended, ...tseslint.configs.strictTypeChecked, eslintConfigPrettier],
+    extends: [
+      eslint.configs.recommended,
+      ...tseslint.configs.strictTypeChecked,
+      ...tseslint.configs.stylisticTypeChecked,
+      eslintConfigPrettier,
+    ],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -16,12 +21,19 @@ export default defineConfig([
     },
     rules: {
       "sort-imports": ["error", { ignoreDeclarationSort: true }],
+      "object-shorthand": "error",
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true, allowBoolean: true }],
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     },
   },
   {
     files: ["tests/**/*.ts"],
-    extends: [eslint.configs.recommended, ...tseslint.configs.strictTypeChecked, eslintConfigPrettier],
+    extends: [
+      eslint.configs.recommended,
+      ...tseslint.configs.strictTypeChecked,
+      ...tseslint.configs.stylisticTypeChecked,
+      eslintConfigPrettier,
+    ],
     plugins: { vitest },
     languageOptions: {
       parserOptions: {
@@ -32,6 +44,8 @@ export default defineConfig([
     rules: {
       ...vitest.configs.recommended.rules,
       "sort-imports": ["error", { ignoreDeclarationSort: true }],
+      "object-shorthand": "error",
+      "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true, allowBoolean: true }],
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       "vitest/expect-expect": ["error", { assertFunctionNames: ["expect", "request.**.expect", "restAssert.**"] }],
     },

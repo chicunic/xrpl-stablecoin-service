@@ -60,23 +60,21 @@ app.use("/api/v1", transferRoutes);
 app.use("/api/v1", transactionRoutes);
 app.use("/api/v1", virtualAccountRoutes);
 
-app.use(
-  (err: unknown, _req: Request, res: Response, next: NextFunction) => {
-    void next;
-    const errorObj = err as { status?: number; message?: string; errors?: unknown };
+app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+  void next;
+  const errorObj = err as { status?: number; message?: string; errors?: unknown };
 
-    if (errorObj.status && errorObj.status < 500) {
-      res.status(errorObj.status).json({
-        error: errorObj.message ?? "Validation error",
-        details: errorObj.errors,
-      });
-      return;
-    }
+  if (errorObj.status && errorObj.status < 500) {
+    res.status(errorObj.status).json({
+      error: errorObj.message ?? "Validation error",
+      details: errorObj.errors,
+    });
+    return;
+  }
 
-    console.error("Unhandled error:", err);
-    res.status(500).json({ error: "Internal server error" });
-  },
-);
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Internal server error" });
+});
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: "Not found" });

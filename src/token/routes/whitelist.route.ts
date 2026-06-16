@@ -30,17 +30,24 @@ router.get("/whitelist/xrp", requireAuth, async (req, res: Response<unknown>) =>
   }
 });
 
-router.post("/whitelist/xrp", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const { address, label } = req.body as { address: string; label: string };
+router.post(
+  "/whitelist/xrp",
+  requireAuth,
+  requireKyc,
+  requireMfa,
+  requireOperationMfa,
+  async (req, res: Response<unknown>) => {
+    try {
+      const { uid } = (req as AuthenticatedRequest).user;
+      const { address, label } = req.body as { address: string; label: string };
 
-    const entry = await addXrpWhitelist(uid, address, label);
-    res.status(201).json(entry);
-  } catch (error) {
-    handleRouteError(error, res, "POST /whitelist/xrp");
-  }
-});
+      const entry = await addXrpWhitelist(uid, address, label);
+      res.status(201).json(entry);
+    } catch (error) {
+      handleRouteError(error, res, "POST /whitelist/xrp");
+    }
+  },
+);
 
 router.delete(
   "/whitelist/xrp/:address",
@@ -69,17 +76,24 @@ router.get("/whitelist/bank", requireAuth, async (req, res: Response<unknown>) =
   }
 });
 
-router.post("/whitelist/bank", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const bankAccount = req.body as Omit<BankAccount, "createdAt">;
+router.post(
+  "/whitelist/bank",
+  requireAuth,
+  requireKyc,
+  requireMfa,
+  requireOperationMfa,
+  async (req, res: Response<unknown>) => {
+    try {
+      const { uid } = (req as AuthenticatedRequest).user;
+      const bankAccount = req.body as Omit<BankAccount, "createdAt">;
 
-    const entry = await addBankWhitelist(uid, bankAccount);
-    res.status(201).json(entry);
-  } catch (error) {
-    handleRouteError(error, res, "POST /whitelist/bank");
-  }
-});
+      const entry = await addBankWhitelist(uid, bankAccount);
+      res.status(201).json(entry);
+    } catch (error) {
+      handleRouteError(error, res, "POST /whitelist/bank");
+    }
+  },
+);
 
 router.delete(
   "/whitelist/bank/:id",

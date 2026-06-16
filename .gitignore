@@ -36,8 +36,17 @@ coverage
 .claude/
 .gemini/
 .cursor/
-.aider*
+.windsurf/
+.codeium/
 .continue/
+.aider*
+.copilot/
+.github/copilot/
+.tabnine/
+.cody/
+.augment/
+.devin/
+.v0/
 
 # Temporary files
 **/.temp/

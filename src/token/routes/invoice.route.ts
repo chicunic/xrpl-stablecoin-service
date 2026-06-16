@@ -53,15 +53,22 @@ router.post("/invoices/send", requireAuth, requireKyc, async (req, res: Response
 });
 
 /** Pay a received invoice */
-router.post("/invoices/pay", requireAuth, requireKyc, requireMfa, requireOperationMfa, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const invoice = await payInvoice(uid, req.body as InvoiceData);
-    res.status(201).json(invoice);
-  } catch (error) {
-    handleRouteError(error, res, "POST /invoices/pay");
-  }
-});
+router.post(
+  "/invoices/pay",
+  requireAuth,
+  requireKyc,
+  requireMfa,
+  requireOperationMfa,
+  async (req, res: Response<unknown>) => {
+    try {
+      const { uid } = (req as AuthenticatedRequest).user;
+      const invoice = await payInvoice(uid, req.body as InvoiceData);
+      res.status(201).json(invoice);
+    } catch (error) {
+      handleRouteError(error, res, "POST /invoices/pay");
+    }
+  },
+);
 
 router.get("/invoices", requireAuth, async (req, res: Response<unknown>) => {
   try {

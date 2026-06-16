@@ -7,6 +7,8 @@
 !*.yml
 !.vscode/
 !src/
+!src/**
 !tests/
+!tests/**
 pnpm-lock.yaml
 pnpm-workspace.yaml

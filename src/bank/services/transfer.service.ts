@@ -32,7 +32,10 @@ async function atmTransaction(
       throw new NotFoundError("Account not found");
     }
 
-    const account = accountDoc.data() as FirebaseFirestore.DocumentData;
+    const account = accountDoc.data();
+    if (!account) {
+      throw new NotFoundError("Account not found");
+    }
     const currentBalance = account.balance as number;
 
     if (type === "atm_out" && currentBalance < amount) {
@@ -87,8 +90,8 @@ export async function transfer(
     const db = getFirestore();
     const idempotencyRef = db.collection("bank_processed_transfers").doc(idempotencyKey);
     const existing = await idempotencyRef.get();
-    if (existing.exists) {
-      const data = existing.data() as FirebaseFirestore.DocumentData;
+    const data = existing.data();
+    if (data) {
       return { balance: data.balance as number, transactionId: data.transactionId as string };
     }
   }
@@ -123,15 +126,14 @@ export async function transfer(
     const fromDoc = await tx.get(fromRef);
     const toDoc = await tx.get(toRef);
 
-    if (!fromDoc.exists) {
+    const fromData = fromDoc.data();
+    if (!fromData) {
       throw new NotFoundError("Account not found");
     }
-    if (!toDoc.exists) {
+    const toData = toDoc.data();
+    if (!toData) {
       throw new ValidationError("Invalid: destination account not found");
     }
-
-    const fromData = fromDoc.data() as FirebaseFirestore.DocumentData;
-    const toData = toDoc.data() as FirebaseFirestore.DocumentData;
 
     const fromBalance = fromData.balance as number;
     if (fromBalance < amount) {

@@ -60,7 +60,10 @@ export async function submitKyc(uid: string, input: SubmitKycInput): Promise<Kyc
     throw new NotFoundError("User not found");
   }
 
-  const user = userDoc.data() as FirebaseFirestore.DocumentData;
+  const user = userDoc.data();
+  if (!user) {
+    throw new NotFoundError("User not found");
+  }
   if (user.kycStatus === "approved") {
     throw new ConflictError("KYC already approved");
   }
@@ -102,7 +105,9 @@ export async function submitKyc(uid: string, input: SubmitKycInput): Promise<Kyc
     }
   } catch (error) {
     console.error("Failed to issue on-chain credential:", error);
-    await kycRef.update({ credentialStatus: "failed" }).catch(() => {});
+    await kycRef.update({ credentialStatus: "failed" }).catch(() => {
+      // Ignore secondary failure when marking credential as failed
+    });
   }
 
   const created = await kycRef.get();

@@ -17,7 +17,7 @@ router.post("/accounts/me/virtual-accounts", requireBankAuth, async (req, res: R
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
 
     const account = await getAccountById(accountId);
-    if (!account || account.accountType !== "corporate") {
+    if (account?.accountType !== "corporate") {
       res.status(403).json({ error: "Invalid: only corporate accounts can create virtual accounts" });
       return;
     }
@@ -36,7 +36,7 @@ router.get("/accounts/me/virtual-accounts", requireBankAuth, async (req, res: Re
     const { accountId } = (req as BankAuthenticatedRequest).bankUser;
 
     const account = await getAccountById(accountId);
-    if (!account || account.accountType !== "corporate") {
+    if (account?.accountType !== "corporate") {
       res.status(403).json({ error: "Invalid: only corporate accounts can list virtual accounts" });
       return;
     }
@@ -54,13 +54,13 @@ router.get("/accounts/me/virtual-accounts/:virtualAccountId", requireBankAuth, a
     const virtualAccountId = req.params.virtualAccountId as string;
 
     const account = await getAccountById(accountId);
-    if (!account || account.accountType !== "corporate") {
+    if (account?.accountType !== "corporate") {
       res.status(403).json({ error: "Invalid: only corporate accounts can view virtual accounts" });
       return;
     }
 
     const virtualAccount = await getVirtualAccountById(virtualAccountId);
-    if (!virtualAccount || virtualAccount.parentAccountId !== accountId) {
+    if (virtualAccount?.parentAccountId !== accountId) {
       res.status(404).json({ error: "Virtual account not found" });
       return;
     }
@@ -71,30 +71,34 @@ router.get("/accounts/me/virtual-accounts/:virtualAccountId", requireBankAuth, a
   }
 });
 
-router.patch("/accounts/me/virtual-accounts/:virtualAccountId", requireBankAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { accountId } = (req as BankAuthenticatedRequest).bankUser;
-    const virtualAccountId = req.params.virtualAccountId as string;
+router.patch(
+  "/accounts/me/virtual-accounts/:virtualAccountId",
+  requireBankAuth,
+  async (req, res: Response<unknown>) => {
+    try {
+      const { accountId } = (req as BankAuthenticatedRequest).bankUser;
+      const virtualAccountId = req.params.virtualAccountId as string;
 
-    const account = await getAccountById(accountId);
-    if (!account || account.accountType !== "corporate") {
-      res.status(403).json({ error: "Invalid: only corporate accounts can update virtual accounts" });
-      return;
+      const account = await getAccountById(accountId);
+      if (account?.accountType !== "corporate") {
+        res.status(403).json({ error: "Invalid: only corporate accounts can update virtual accounts" });
+        return;
+      }
+
+      const virtualAccount = await getVirtualAccountById(virtualAccountId);
+      if (virtualAccount?.parentAccountId !== accountId) {
+        res.status(404).json({ error: "Virtual account not found" });
+        return;
+      }
+
+      const { label, isActive } = req.body as { label?: string; isActive?: boolean };
+      const updated = await updateVirtualAccount(virtualAccountId, { label, isActive });
+
+      res.json(updated);
+    } catch (error) {
+      handleRouteError(error, res, "PATCH /accounts/me/virtual-accounts/:virtualAccountId");
     }
-
-    const virtualAccount = await getVirtualAccountById(virtualAccountId);
-    if (!virtualAccount || virtualAccount.parentAccountId !== accountId) {
-      res.status(404).json({ error: "Virtual account not found" });
-      return;
-    }
-
-    const { label, isActive } = req.body as { label?: string; isActive?: boolean };
-    const updated = await updateVirtualAccount(virtualAccountId, { label, isActive });
-
-    res.json(updated);
-  } catch (error) {
-    handleRouteError(error, res, "PATCH /accounts/me/virtual-accounts/:virtualAccountId");
-  }
-});
+  },
+);
 
 export default router;

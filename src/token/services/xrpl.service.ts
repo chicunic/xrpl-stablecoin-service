@@ -74,9 +74,7 @@ export async function sendToken(
   return extractTxHash(result);
 }
 
-export async function getBalances(
-  address: string,
-): Promise<Array<{ currency: string; value: string; issuer: string }>> {
+export async function getBalances(address: string): Promise<{ currency: string; value: string; issuer: string }[]> {
   const xrplClient = await getClient();
 
   const response: AccountLinesResponse = await xrplClient.request({

@@ -38,12 +38,13 @@ vi.mock("../../src/token/config/bank", () => ({
 // Mock global fetch for bank API calls
 const mockFetch = vi.fn().mockResolvedValue({
   ok: true,
-  json: () => Promise.resolve({
-    bankCode: "9999",
-    branchCode: "001",
-    accountNumber: "0010001",
-    accountHolder: "Mock User",
-  }),
+  json: () =>
+    Promise.resolve({
+      bankCode: "9999",
+      branchCode: "001",
+      accountNumber: "0010001",
+      accountHolder: "Mock User",
+    }),
 });
 global.fetch = mockFetch;
 
