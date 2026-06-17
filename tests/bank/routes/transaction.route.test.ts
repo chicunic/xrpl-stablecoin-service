@@ -1,9 +1,7 @@
-import type { Request, Response } from "express";
-import type express from "express";
 import { restAssert } from "../../utils/helpers";
 import { mockFirestoreService } from "../../utils/mock.index";
 import { MOCK_BANK_TRANSACTION } from "../utils/data";
-import { mockBankAuth } from "../utils/mock.bank-auth";
+import { bankAuthReject401, mockBankAuth } from "../utils/mock.bank-auth";
 import { mockTransactionService } from "../utils/mock.bank-services";
 import { BankRestTestHelper, createBankTestApp } from "../utils/server.rest";
 
@@ -26,7 +24,7 @@ vi.mock("@bank/services/transaction.service.js", async () => {
 });
 
 describe("Bank Transaction Routes - REST API Integration", () => {
-  let app: express.Application;
+  let app: Awaited<ReturnType<typeof createBankTestApp>>;
   let helper: BankRestTestHelper;
 
   beforeAll(async () => {
@@ -70,9 +68,7 @@ describe("Bank Transaction Routes - REST API Integration", () => {
     });
 
     it("should return 401 without auth", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((_req: Request, res: Response) => {
-        res.status(401).json({ error: "Missing or invalid Authorization header" });
-      });
+      mockBankAuth.requireBankAuth.mockImplementation(bankAuthReject401());
 
       const response = await helper.get("/api/v1/transactions");
 

@@ -1,38 +1,56 @@
-import { type BankAuthenticatedRequest, requireBankAuth } from "@bank/middleware/bank-auth.js";
+import { type BankEnv, requireBankAuth } from "@bank/middleware/bank-auth.js";
 import { verifyPin } from "@bank/services/account.service.js";
 import { transfer } from "@bank/services/transfer.service.js";
-import { ValidationError, handleRouteError } from "@common/utils/error.handler.js";
-import type { Response, Router as RouterType } from "express";
-import { Router } from "express";
+import { serializeTimestamps } from "@common/utils/json.replacer.js";
+import { defaultHook, jsonError } from "@common/utils/problem.js";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { HTTPException } from "hono/http-exception";
 
-const router: RouterType = Router();
+const app = new OpenAPIHono<BankEnv>({ defaultHook: defaultHook() });
 
-router.post("/transfers", requireBankAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { accountId, tokenType } = (req as BankAuthenticatedRequest).bankUser;
-    const { toBranchCode, toAccountNumber, amount, pin, idempotencyKey } = req.body as {
-      toBranchCode: string;
-      toAccountNumber: string;
-      amount: number;
-      pin?: string;
-      idempotencyKey?: string;
-    };
+const TransferInput = z
+  .object({
+    toBranchCode: z.string().regex(/^[0-9]{3}$/, "toBranchCode must be 3 digits"),
+    toAccountNumber: z.string().min(1),
+    amount: z.number().min(1),
+    // Required for session (cookie) auth; not required for API token auth.
+    pin: z
+      .string()
+      .regex(/^[0-9]{4}$/, "pin must be 4 digits")
+      .optional(),
+    idempotencyKey: z.string().optional(),
+  })
+  .meta({ id: "TransferInput" });
 
-    if (tokenType === "api") {
-      // API token: PIN not required
-    } else {
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/transfers",
+    summary: "Transfer funds to another account",
+    tags: ["Transfer"],
+    security: [{ bearer: [] }],
+    middleware: [requireBankAuth],
+    request: { body: { content: { "application/json": { schema: TransferInput } }, required: true } },
+    responses: {
+      200: { content: { "application/json": { schema: z.any() } }, description: "Transferred" },
+      400: jsonError("Validation error"),
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { accountId, tokenType } = c.get("bankUser");
+    const { toBranchCode, toAccountNumber, amount, pin, idempotencyKey } = c.req.valid("json");
+
+    if (tokenType !== "api") {
       if (!pin) {
-        throw new ValidationError("Invalid: pin is required");
+        throw new HTTPException(400, { message: "Invalid: pin is required" });
       }
       await verifyPin(accountId, pin);
     }
 
     const result = await transfer(accountId, toBranchCode, toAccountNumber, amount, idempotencyKey);
+    return c.json(serializeTimestamps(result), 200);
+  },
+);
 
-    res.json(result);
-  } catch (error) {
-    handleRouteError(error, res, "POST /transfers");
-  }
-});
-
-export default router;
+export default app;

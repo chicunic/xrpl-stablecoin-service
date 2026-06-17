@@ -1,4 +1,5 @@
-import type { NextFunction, Request, Response } from "express";
+import type { Context, Next } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { TEST_BANK_ACCOUNT_ID } from "./data";
 
 export const mockBankAuth = {
@@ -8,15 +9,12 @@ export const mockBankAuth = {
   generateApiToken: vi.fn(),
   verifyToken: vi.fn(),
   setup: () => {
-    mockBankAuth.requireBankAuth.mockImplementation((req: Request, _res: Response, next: NextFunction) => {
-      (req as Request & { bankUser: { accountId: string; tokenType: string } }).bankUser = {
-        accountId: TEST_BANK_ACCOUNT_ID,
-        tokenType: "session",
-      };
-      next();
+    mockBankAuth.requireBankAuth.mockImplementation(async (c: Context, next: Next) => {
+      c.set("bankUser", { accountId: TEST_BANK_ACCOUNT_ID, tokenType: "session" });
+      await next();
     });
-    mockBankAuth.rejectApiToken.mockImplementation((_req: Request, _res: Response, next: NextFunction) => {
-      next();
+    mockBankAuth.rejectApiToken.mockImplementation(async (_c: Context, next: Next) => {
+      await next();
     });
     mockBankAuth.generateToken.mockReturnValue("mock-bank-jwt-token");
     mockBankAuth.generateApiToken.mockReturnValue("mock-bank-api-token");
@@ -30,3 +28,18 @@ export const mockBankAuth = {
     mockBankAuth.verifyToken.mockReset();
   },
 };
+
+/** Hono middleware that rejects with a 401 — for per-test "no auth" overrides. */
+export function bankAuthReject401(message = "Missing or invalid Authorization header") {
+  return () => {
+    throw new HTTPException(401, { message });
+  };
+}
+
+/** Hono middleware that sets a specific bankUser — for per-test token-type overrides. */
+export function bankAuthAs(accountId: string, tokenType: "session" | "api") {
+  return async (c: Context, next: Next) => {
+    c.set("bankUser", { accountId, tokenType });
+    await next();
+  };
+}

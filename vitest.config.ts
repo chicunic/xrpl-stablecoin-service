@@ -5,6 +5,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
+    env: {
+      NODE_ENV: "test",
+      BANK_JWT_SECRET: "test-bank-jwt-secret",
+      MFA_TOKEN_SECRET: "test-mfa-token-secret",
+    },
     include: ["tests/**/*.test.ts", "tests/**/*.spec.ts"],
     exclude: ["tests/integration/**"],
     coverage: {

@@ -1,4 +1,3 @@
-import type express from "express";
 import { restAssert } from "./utils/helpers";
 import { mockFirestoreService, mockIdentityPlatformAuth } from "./utils/mock.index";
 import { RestTestHelper, createCompleteTestApp } from "./utils/server.rest";
@@ -10,7 +9,7 @@ vi.mock("../src/token/config/bank", () => ({
 }));
 
 describe("Health Check - REST API", () => {
-  let app: express.Application;
+  let app: Awaited<ReturnType<typeof createCompleteTestApp>>;
   let helper: RestTestHelper;
 
   beforeAll(async () => {

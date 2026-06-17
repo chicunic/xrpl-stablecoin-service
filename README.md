@@ -61,6 +61,12 @@ XRPL transactions are signed using **ed25519**. The signing backend is configura
 
 The signing service uses lazy dynamic imports, loading only the selected provider at runtime.
 
+### Request Validation & API Documentation
+
+- **Zod schemas** validate every request (body, query, path params) and double as the source for auto-generated **OpenAPI 3.1** specs
+- **RFC 9457 Problem Details** (`application/problem+json`) for all error responses — `{type, title, status, detail, instance, errors}`
+- Interactive Swagger UI and the raw spec are served per service (see [API Surface](#api-surface))
+
 ### Event-driven Processing
 
 - **Pub/Sub** push subscriptions deliver bank deposit events to the Token service for automatic fiat balance crediting
@@ -71,46 +77,47 @@ The signing service uses lazy dynamic imports, loading only the selected provide
 
 - 1:1 fiat-to-token exchange with on-chain minting via `Payment` transactions
 - 1:1 token-to-fiat exchange with on-chain burning
-- Automatic TrustLine management for token holders
+- MPToken authorization management for token holders
 - On-chain balance queries directly from the XRPL (no local balance tracking)
 
 ## Tech Stack
 
-| Layer      | Technology                      |
-| ---------- | ------------------------------- |
-| Runtime    | Node.js (ESM) + TypeScript      |
-| Framework  | Express 5                       |
-| Blockchain | XRPL (xrpl.js)                  |
-| Auth       | Firebase Identity Platform      |
-| Database   | Cloud Firestore                 |
-| Messaging  | Cloud Pub/Sub, Eventarc         |
-| Secrets    | Cloud Secret Manager, Cloud KMS |
-| Deployment | Cloud Run via Cloud Build       |
-| API docs   | OpenAPI 3.0 + Swagger UI        |
-| Testing    | Vitest + Supertest              |
-| Linting    | Biome                           |
+| Layer      | Technology                                     |
+| ---------- | ---------------------------------------------- |
+| Runtime    | Node.js (ESM) + TypeScript                     |
+| Framework  | Hono                                           |
+| Validation | Zod (via `@hono/zod-openapi`)                  |
+| Blockchain | XRPL (xrpl.js)                                 |
+| Auth       | Firebase Identity Platform                     |
+| Database   | Cloud Firestore                                |
+| Messaging  | Cloud Pub/Sub, Eventarc                        |
+| Secrets    | Cloud Secret Manager, Cloud KMS                |
+| Deployment | Cloud Run via Cloud Build                      |
+| API docs   | OpenAPI 3.1 (`@hono/zod-openapi`) + Swagger UI |
+| Testing    | Vitest                                         |
+| Linting    | ESLint + Prettier                              |
 
 ## API Surface
 
 ### Token Services
 
-| Method | Endpoint                           | Description                           |
-| ------ | ---------------------------------- | ------------------------------------- |
-| POST   | `/api/v1/auth/session`             | Create session from Firebase ID token |
-| GET    | `/api/v1/users/me`                 | Get or create user profile            |
-| POST   | `/api/v1/users/me/wallet`          | Provision XRPL wallet                 |
-| POST   | `/api/v1/users/me/virtual-account` | Set up virtual bank account           |
-| GET    | `/api/v1/tokens`                   | List available stablecoins            |
-| POST   | `/api/v1/tokens/:id/trustline`     | Establish TrustLine                   |
-| GET    | `/api/v1/balance/fiat`             | Fiat balance                          |
-| GET    | `/api/v1/balance/tokens`           | Token balances with TrustLine status  |
-| POST   | `/api/v1/exchange/fiat-to-xrp`     | Mint tokens (fiat → token)            |
-| POST   | `/api/v1/exchange/xrp-to-fiat`     | Burn tokens (token → fiat)            |
-| POST   | `/api/v1/withdraw/fiat`            | Withdraw to bank account              |
-| POST   | `/api/v1/withdraw/xrp`             | Withdraw tokens to external wallet    |
-| `*`    | `/api/v1/whitelist/*`              | Manage withdrawal whitelists          |
-| `*`    | `/api/v1/kyc/*`                    | KYC verification                      |
-| `*`    | `/api/v1/mfa/*`                    | MFA token management                  |
+| Method | Endpoint                           | Description                                |
+| ------ | ---------------------------------- | ------------------------------------------ |
+| POST   | `/api/v1/auth/session`             | Create session from Firebase ID token      |
+| GET    | `/api/v1/users/me`                 | Get or create user profile                 |
+| POST   | `/api/v1/users/me/wallet`          | Provision XRPL wallet                      |
+| POST   | `/api/v1/users/me/virtual-account` | Set up virtual bank account                |
+| GET    | `/api/v1/tokens`                   | List available stablecoins                 |
+| POST   | `/api/v1/tokens/:id/authorize`     | Authorize the holder for an MPToken        |
+| GET    | `/api/v1/balance/fiat`             | Fiat balance                               |
+| GET    | `/api/v1/balance/mpt`              | MPToken balances with authorization status |
+| POST   | `/api/v1/exchange/fiat-to-mpt`     | Mint MPToken (fiat → MPToken)              |
+| POST   | `/api/v1/exchange/mpt-to-fiat`     | Burn MPToken (MPToken → fiat)              |
+| POST   | `/api/v1/withdraw/fiat`            | Withdraw to bank account                   |
+| POST   | `/api/v1/withdraw/mpt`             | Withdraw MPToken to external XRPL wallet   |
+| `*`    | `/api/v1/whitelist/*`              | Manage withdrawal whitelists               |
+| `*`    | `/api/v1/kyc/*`                    | KYC verification                           |
+| `*`    | `/api/v1/mfa/*`                    | MFA token management                       |
 
 ### Bank Services
 
@@ -125,7 +132,7 @@ The signing service uses lazy dynamic imports, loading only the selected provide
 | `*`    | `/api/v1/accounts/me/virtual-accounts/*` | Virtual account management (corporate) |
 | GET    | `/api/v1/transactions`                   | Transaction history                    |
 
-Both services expose interactive API documentation at `/api-docs`.
+Both services expose interactive Swagger UI at `/docs` and the raw OpenAPI spec at `/openapi.json`.
 
 ## Deployment
 

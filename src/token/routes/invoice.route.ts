@@ -1,104 +1,188 @@
-import { handleRouteError } from "@common/utils/error.handler.js";
-import {
-  type AuthenticatedRequest,
-  requireAuth,
-  requireKyc,
-  requireMfa,
-  requireOperationMfa,
-} from "@token/middleware/auth.js";
-import type { InvoiceData } from "@token/services/invoice.service.js";
+import { MAX_SAFE_AMOUNT } from "@common/utils/amount.js";
+import { serializeTimestamps } from "@common/utils/json.replacer.js";
+import { defaultHook, jsonError } from "@common/utils/problem.js";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { InvoiceSchema, ParsedInvoiceDataSchema } from "@token/config/response-schemas.js";
+import { type AuthEnv, requireAuth, requireKyc, requireMfa, requireOperationMfa } from "@token/middleware/auth.js";
 import { cancelInvoice, getInvoice, listInvoices, payInvoice, sendInvoice } from "@token/services/invoice.service.js";
 import { parseInvoicePdf } from "@token/services/invoice-pdf.service.js";
-import type { InvoiceType } from "@token/types/invoice.type.js";
-import type { Response, Router as RouterType } from "express";
-import { Router } from "express";
-import multer from "multer";
+import { HTTPException } from "hono/http-exception";
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (file.mimetype === "application/pdf") {
-      cb(null, true);
-    } else {
-      cb(new Error("Only PDF files are allowed"));
+const app = new OpenAPIHono<AuthEnv>({ defaultHook: defaultHook() });
+
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
+
+const InvoiceInput = z
+  .object({
+    tokenId: z.string().min(1),
+    amount: z.number().int().min(1).max(MAX_SAFE_AMOUNT),
+    recipientAddress: z.string(),
+    recipientName: z.string().min(1),
+    description: z.string().min(1),
+    dueDate: z.string().optional(),
+    invoiceId: z.string().optional(),
+  })
+  .meta({ id: "InvoiceInput" });
+
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/invoices/pay/parse-pdf",
+    summary: "Parse an invoice PDF",
+    tags: ["Invoice"],
+    security: [{ session: [] }],
+    middleware: [requireAuth],
+    request: {
+      body: {
+        content: {
+          "multipart/form-data": {
+            schema: z.object({ pdf: z.any().meta({ type: "string", format: "binary" }) }),
+          },
+        },
+        required: true,
+      },
+    },
+    responses: {
+      200: { content: { "application/json": { schema: ParsedInvoiceDataSchema } }, description: "Parsed invoice" },
+      400: jsonError("PDF file is required"),
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const body = await c.req.parseBody();
+    const file = body.pdf;
+    if (!(file instanceof File)) {
+      throw new HTTPException(400, { message: "PDF file is required" });
     }
-  },
-});
-
-const router: RouterType = Router();
-
-router.post("/invoices/pay/parse-pdf", requireAuth, upload.single("pdf"), async (req, res: Response<unknown>) => {
-  try {
-    if (!req.file) {
-      res.status(400).json({ error: "PDF file is required" });
-      return;
+    if (file.type !== "application/pdf") {
+      throw new HTTPException(400, { message: "Only PDF files are allowed" });
     }
-    const data = await parseInvoicePdf(req.file.buffer);
-    res.json(data);
-  } catch (error) {
-    handleRouteError(error, res, "POST /invoices/parse-pdf");
-  }
-});
-
-/** Send an invoice to someone */
-router.post("/invoices/send", requireAuth, requireKyc, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const invoice = await sendInvoice(uid, req.body as InvoiceData);
-    res.status(201).json(invoice);
-  } catch (error) {
-    handleRouteError(error, res, "POST /invoices/send");
-  }
-});
-
-/** Pay a received invoice */
-router.post(
-  "/invoices/pay",
-  requireAuth,
-  requireKyc,
-  requireMfa,
-  requireOperationMfa,
-  async (req, res: Response<unknown>) => {
-    try {
-      const { uid } = (req as AuthenticatedRequest).user;
-      const invoice = await payInvoice(uid, req.body as InvoiceData);
-      res.status(201).json(invoice);
-    } catch (error) {
-      handleRouteError(error, res, "POST /invoices/pay");
+    if (file.size > MAX_PDF_BYTES) {
+      throw new HTTPException(400, { message: "PDF file is too large" });
     }
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const data = await parseInvoicePdf(buffer);
+    return c.json(serializeTimestamps(data), 200);
   },
 );
 
-router.get("/invoices", requireAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const type = req.query.type as InvoiceType | undefined;
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/invoices/send",
+    summary: "Send an invoice",
+    tags: ["Invoice"],
+    security: [{ session: [] }],
+    middleware: [requireAuth, requireKyc],
+    request: { body: { content: { "application/json": { schema: InvoiceInput } }, required: true } },
+    responses: {
+      201: { content: { "application/json": { schema: InvoiceSchema } }, description: "Invoice sent" },
+      400: jsonError("Validation error"),
+      401: jsonError("Unauthorized"),
+      403: jsonError("KYC required"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const invoice = await sendInvoice(uid, c.req.valid("json"));
+    return c.json(serializeTimestamps(invoice), 201);
+  },
+);
+
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/invoices/pay",
+    summary: "Pay a received invoice",
+    tags: ["Invoice"],
+    security: [{ session: [] }],
+    middleware: [requireAuth, requireKyc, requireMfa, requireOperationMfa],
+    request: { body: { content: { "application/json": { schema: InvoiceInput } }, required: true } },
+    responses: {
+      201: { content: { "application/json": { schema: InvoiceSchema } }, description: "Invoice paid" },
+      400: jsonError("Validation error"),
+      401: jsonError("Unauthorized"),
+      403: jsonError("KYC/MFA required"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const invoice = await payInvoice(uid, c.req.valid("json"));
+    return c.json(serializeTimestamps(invoice), 201);
+  },
+);
+
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/invoices",
+    summary: "List invoices",
+    tags: ["Invoice"],
+    security: [{ session: [] }],
+    middleware: [requireAuth],
+    request: {
+      query: z.object({
+        type: z
+          .enum(["send", "pay"])
+          .optional()
+          .meta({ param: { name: "type", in: "query" } }),
+      }),
+    },
+    responses: {
+      200: { content: { "application/json": { schema: z.array(InvoiceSchema) } }, description: "Invoices" },
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const { type } = c.req.valid("query");
     const invoices = await listInvoices(uid, type);
-    res.json(invoices);
-  } catch (error) {
-    handleRouteError(error, res, "GET /invoices");
-  }
-});
+    return c.json(serializeTimestamps(invoices), 200);
+  },
+);
 
-router.get("/invoices/:invoiceId", requireAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const invoice = await getInvoice(uid, req.params.invoiceId as string);
-    res.json(invoice);
-  } catch (error) {
-    handleRouteError(error, res, "GET /invoices/:invoiceId");
-  }
-});
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/invoices/{invoiceId}",
+    summary: "Get an invoice",
+    tags: ["Invoice"],
+    security: [{ session: [] }],
+    middleware: [requireAuth],
+    request: { params: z.object({ invoiceId: z.string().meta({ param: { name: "invoiceId", in: "path" } }) }) },
+    responses: {
+      200: { content: { "application/json": { schema: InvoiceSchema } }, description: "Invoice" },
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const { invoiceId } = c.req.valid("param");
+    const invoice = await getInvoice(uid, invoiceId);
+    return c.json(serializeTimestamps(invoice), 200);
+  },
+);
 
-router.post("/invoices/:invoiceId/cancel", requireAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const invoice = await cancelInvoice(uid, req.params.invoiceId as string);
-    res.json(invoice);
-  } catch (error) {
-    handleRouteError(error, res, "POST /invoices/:invoiceId/cancel");
-  }
-});
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/invoices/{invoiceId}/cancel",
+    summary: "Cancel an invoice",
+    tags: ["Invoice"],
+    security: [{ session: [] }],
+    middleware: [requireAuth],
+    request: { params: z.object({ invoiceId: z.string().meta({ param: { name: "invoiceId", in: "path" } }) }) },
+    responses: {
+      200: { content: { "application/json": { schema: InvoiceSchema } }, description: "Invoice cancelled" },
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const { invoiceId } = c.req.valid("param");
+    const invoice = await cancelInvoice(uid, invoiceId);
+    return c.json(serializeTimestamps(invoice), 200);
+  },
+);
 
-export default router;
+export default app;

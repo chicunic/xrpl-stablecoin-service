@@ -2,13 +2,7 @@ import { mockIdentityPlatformAuth } from "./mock.auth";
 import { mockFirestoreService } from "./mock.firestore";
 import { mockIdempotency } from "./mock.idempotency";
 import { mockPubSubService } from "./mock.pubsub";
-import {
-  mockFaucetService,
-  mockKmsService,
-  mockTrustlineService,
-  mockWalletService,
-  mockXrplService,
-} from "./mock.services";
+import { mockFaucetService, mockKmsService, mockWalletService, mockXrplService } from "./mock.services";
 
 export {
   mockFaucetService,
@@ -17,7 +11,6 @@ export {
   mockIdentityPlatformAuth,
   mockKmsService,
   mockPubSubService,
-  mockTrustlineService,
   mockWalletService,
   mockXrplService,
 };

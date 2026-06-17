@@ -1,61 +1,91 @@
-import { handleRouteError } from "@common/utils/error.handler.js";
-import {
-  type AuthenticatedRequest,
-  requireAuth,
-  requireKyc,
-  requireMfa,
-  requireOperationMfa,
-} from "@token/middleware/auth.js";
-import { withdrawFiat, withdrawXrp } from "@token/services/withdrawal.service.js";
-import type { BankAccount } from "@token/types/user.type.js";
-import type { Response, Router as RouterType } from "express";
-import { Router } from "express";
+import { MAX_SAFE_AMOUNT } from "@common/utils/amount.js";
+import { serializeTimestamps } from "@common/utils/json.replacer.js";
+import { defaultHook, jsonError } from "@common/utils/problem.js";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { FiatWithdrawalResultSchema, MptWithdrawalResultSchema } from "@token/config/response-schemas.js";
+import { BankAccountFields, XRPL_ADDRESS_REGEX } from "@token/config/schemas.js";
+import { type AuthEnv, requireAuth, requireKyc, requireMfa, requireOperationMfa } from "@token/middleware/auth.js";
+import { withdrawFiat, withdrawMpt } from "@token/services/withdrawal.service.js";
 
-const router: RouterType = Router();
+const app = new OpenAPIHono<AuthEnv>({ defaultHook: defaultHook() });
 
-router.post(
-  "/withdraw/fiat",
-  requireAuth,
-  requireKyc,
-  requireMfa,
-  requireOperationMfa,
-  async (req, res: Response<unknown>) => {
-    try {
-      const { uid } = (req as AuthenticatedRequest).user;
-      const { amount, bankAccount } = req.body as {
-        amount: number;
-        bankAccount: BankAccount;
-      };
+const writeAuth = {
+  security: [{ session: [] }],
+  middleware: [requireAuth, requireKyc, requireMfa, requireOperationMfa],
+};
 
-      const result = await withdrawFiat(uid, amount, bankAccount);
-      res.status(201).json(result);
-    } catch (error) {
-      handleRouteError(error, res, "POST /withdraw/fiat");
-    }
+const BankAccountSchema = z
+  .object({
+    ...BankAccountFields,
+    label: z.string(),
+  })
+  .meta({ id: "WithdrawalBankAccount" });
+
+const WithdrawFiatInput = z
+  .object({
+    amount: z.number().int().min(1).max(MAX_SAFE_AMOUNT),
+    bankAccount: BankAccountSchema,
+  })
+  .meta({ id: "WithdrawFiatInput" });
+
+const WithdrawMptInput = z
+  .object({
+    tokenId: z.string().min(1),
+    tokenAmount: z.number().int().min(1).max(MAX_SAFE_AMOUNT),
+    destinationAddress: z.string().regex(XRPL_ADDRESS_REGEX, "destinationAddress must be a valid XRPL address"),
+  })
+  .meta({ id: "WithdrawMptInput" });
+
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/withdraw/fiat",
+    summary: "Withdraw fiat to a bank account",
+    tags: ["Withdrawal"],
+    ...writeAuth,
+    request: { body: { content: { "application/json": { schema: WithdrawFiatInput } }, required: true } },
+    responses: {
+      201: {
+        content: { "application/json": { schema: FiatWithdrawalResultSchema } },
+        description: "Withdrawal created",
+      },
+      400: jsonError("Validation error"),
+      401: jsonError("Unauthorized"),
+      403: jsonError("KYC/MFA required"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const { amount, bankAccount } = c.req.valid("json");
+    const result = await withdrawFiat(uid, amount, bankAccount);
+    return c.json(serializeTimestamps(result), 201);
   },
 );
 
-router.post(
-  "/withdraw/xrp",
-  requireAuth,
-  requireKyc,
-  requireMfa,
-  requireOperationMfa,
-  async (req, res: Response<unknown>) => {
-    try {
-      const { uid } = (req as AuthenticatedRequest).user;
-      const { tokenId, tokenAmount, destinationAddress } = req.body as {
-        tokenId: string;
-        tokenAmount: number;
-        destinationAddress: string;
-      };
-
-      const result = await withdrawXrp(uid, tokenId, tokenAmount, destinationAddress);
-      res.status(201).json(result);
-    } catch (error) {
-      handleRouteError(error, res, "POST /withdraw/xrp");
-    }
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/withdraw/mpt",
+    summary: "Withdraw MPToken to an XRPL address",
+    tags: ["Withdrawal"],
+    ...writeAuth,
+    request: { body: { content: { "application/json": { schema: WithdrawMptInput } }, required: true } },
+    responses: {
+      201: {
+        content: { "application/json": { schema: MptWithdrawalResultSchema } },
+        description: "Withdrawal created",
+      },
+      400: jsonError("Validation error"),
+      401: jsonError("Unauthorized"),
+      403: jsonError("KYC/MFA required"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const { tokenId, tokenAmount, destinationAddress } = c.req.valid("json");
+    const result = await withdrawMpt(uid, tokenId, tokenAmount, destinationAddress);
+    return c.json(serializeTimestamps(result), 201);
   },
 );
 
-export default router;
+export default app;

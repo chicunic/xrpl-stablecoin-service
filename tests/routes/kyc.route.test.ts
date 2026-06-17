@@ -1,4 +1,3 @@
-import type express from "express";
 import { MOCK_KYC_DOC, MOCK_USER_DOC_BASE } from "../utils/data";
 import { restAssert } from "../utils/helpers";
 import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.index";
@@ -8,19 +7,11 @@ import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
 vi.mock("../../src/token/services/wallet.service", () => ({
   deriveWallet: vi.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
   getWalletForSigning: vi.fn().mockResolvedValue({ sign: vi.fn() }),
-  allocateXrpAddressIndex: vi.fn().mockResolvedValue(1),
 }));
 
 // Mock faucet.service to avoid real XRPL faucet calls
 vi.mock("../../src/token/services/faucet.service", () => ({
   fundAccount: vi.fn().mockResolvedValue({ balance: 1000 }),
-}));
-
-// Mock trustline.service to avoid real XRPL trustline calls
-vi.mock("../../src/token/services/trustline.service", () => ({
-  hasTrustLine: vi.fn().mockResolvedValue(false),
-  setTrustLine: vi.fn().mockResolvedValue("mock-trustline-tx-hash"),
-  ensureTrustLine: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock credential.service to avoid real XRPL credential calls
@@ -47,7 +38,7 @@ const VALID_KYC_INPUT = {
 };
 
 describe("KYC Routes - REST API Integration", () => {
-  let app: express.Application;
+  let app: Awaited<ReturnType<typeof createCompleteTestApp>>;
   let helper: RestTestHelper;
 
   beforeAll(async () => {

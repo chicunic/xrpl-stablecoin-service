@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { getFirestore } from "@common/config/firebase.js";
 import { NotFoundError, ValidationError } from "@common/utils/error.handler.js";
+import { assertSafeAmount } from "@common/utils/amount.js";
 import { getTokenConfig } from "@token/config/tokens.js";
 import { getUserWallet } from "@token/services/auth.service.js";
-import { recordXrpTransaction } from "@token/services/token-balance.service.js";
-import { getXrpWhitelist, isXrpWhitelisted } from "@token/services/whitelist.service.js";
-import { sendTokenFromUser } from "@token/services/xrpl.service.js";
+import { recordMptTransaction } from "@token/services/token-balance.service.js";
+import { getXrplWhitelist, isXrplWhitelisted } from "@token/services/whitelist.service.js";
+import { transfer } from "@token/services/xrpl.service.js";
 import type { Invoice, InvoiceType } from "@token/types/invoice.type.js";
 import type { DocumentReference } from "firebase-admin/firestore";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
@@ -60,9 +61,7 @@ function buildDueDateField(dueDate?: string): { dueDate: Timestamp } | Record<st
 export async function sendInvoice(userId: string, data: InvoiceData): Promise<Invoice> {
   getTokenConfig(data.tokenId);
 
-  if (data.amount <= 0) {
-    throw new ValidationError("Invalid: amount must be positive");
-  }
+  assertSafeAmount(data.amount);
 
   const wallet = await getUserWallet(userId);
   if (!wallet) {
@@ -97,17 +96,15 @@ export async function sendInvoice(userId: string, data: InvoiceData): Promise<In
 export async function payInvoice(userId: string, data: InvoiceData): Promise<Invoice> {
   const tokenConfig = getTokenConfig(data.tokenId);
 
-  if (data.amount <= 0) {
-    throw new ValidationError("Invalid: amount must be positive");
-  }
+  assertSafeAmount(data.amount);
 
   const wallet = await getUserWallet(userId);
   if (!wallet) {
     throw new NotFoundError("Wallet not set up");
   }
 
-  const whitelist = await getXrpWhitelist(userId);
-  if (!isXrpWhitelisted(whitelist, data.recipientAddress)) {
+  const whitelist = await getXrplWhitelist(userId);
+  if (!isXrplWhitelisted(whitelist, data.recipientAddress)) {
     throw new ValidationError("Invalid: recipient address is not in whitelist");
   }
 
@@ -148,13 +145,12 @@ export async function payInvoice(userId: string, data: InvoiceData): Promise<Inv
 
   let txHash: string;
   try {
-    txHash = await sendTokenFromUser(
+    txHash = await transfer(
       wallet.bipIndex,
       wallet.address,
       data.recipientAddress,
-      tokenConfig.currency,
+      tokenConfig.mptIssuanceId,
       data.amount.toString(),
-      tokenConfig.issuerAddress,
     );
   } catch (error) {
     await ref.update({
@@ -173,12 +169,12 @@ export async function payInvoice(userId: string, data: InvoiceData): Promise<Inv
   });
 
   try {
-    await recordXrpTransaction(
+    await recordMptTransaction(
       userId,
       data.tokenId,
       "invoice_payment",
       data.amount,
-      `${tokenConfig.currency} 請求書支払`,
+      `${tokenConfig.name} 請求書支払`,
       txHash,
       paymentId,
     );

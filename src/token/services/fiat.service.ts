@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getFirestore } from "@common/config/firebase.js";
+import { assertSafeAmount } from "@common/utils/amount.js";
 import { NotFoundError, ValidationError } from "@common/utils/error.handler.js";
 import type { FiatTransaction, FiatTransactionType } from "@token/types/fiat-transaction.type.js";
 import { FieldValue } from "firebase-admin/firestore";
@@ -25,9 +26,7 @@ async function executeFiatTransaction(
   description: string,
   relatedOrderId?: string,
 ): Promise<FiatTransaction> {
-  if (amount <= 0) {
-    throw new ValidationError("Invalid: amount must be positive");
-  }
+  assertSafeAmount(amount);
 
   const db = getFirestore();
   const transactionId = randomUUID();

@@ -1,4 +1,3 @@
-import type express from "express";
 import { restAssert } from "../utils/helpers";
 import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.index";
 
@@ -10,10 +9,14 @@ vi.mock("../../src/token/config/bank", () => ({
 
 // Mock xrpl.service to avoid real XRPL connections
 vi.mock("../../src/token/services/xrpl.service", () => ({
-  sendToken: vi.fn().mockResolvedValue("mock-tx-hash"),
-  sendTokenFromUser: vi.fn().mockResolvedValue("mock-tx-hash"),
+  mint: vi.fn().mockResolvedValue("mock-tx-hash"),
+  transfer: vi.fn().mockResolvedValue("mock-tx-hash"),
+  burn: vi.fn().mockResolvedValue("mock-tx-hash"),
+  authorize: vi.fn().mockResolvedValue("mock-tx-hash"),
+  issuerAuthorize: vi.fn().mockResolvedValue("mock-tx-hash"),
+  hasMptAuthorization: vi.fn().mockResolvedValue(false),
   sendXrpFromUser: vi.fn().mockResolvedValue("mock-tx-hash"),
-  getBalances: vi.fn().mockResolvedValue([]),
+  getMptBalances: vi.fn().mockResolvedValue([]),
   getClient: vi.fn().mockResolvedValue({}),
   disconnect: vi.fn().mockResolvedValue(undefined),
 }));
@@ -22,7 +25,6 @@ vi.mock("../../src/token/services/xrpl.service", () => ({
 vi.mock("../../src/token/services/wallet.service", () => ({
   deriveWallet: vi.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
   getWalletForSigning: vi.fn().mockResolvedValue({ sign: vi.fn() }),
-  allocateXrpAddressIndex: vi.fn().mockResolvedValue(1),
 }));
 
 // Mock faucet.service to avoid real XRPL faucet calls
@@ -30,17 +32,12 @@ vi.mock("../../src/token/services/faucet.service", () => ({
   fundAccount: vi.fn().mockResolvedValue({ balance: 1000 }),
 }));
 
-// Mock trustline.service to avoid real XRPL trustline calls
-vi.mock("../../src/token/services/trustline.service", () => ({
-  hasTrustLine: vi.fn().mockResolvedValue(false),
-  setTrustLine: vi.fn().mockResolvedValue("mock-trustline-tx-hash"),
-  ensureTrustLine: vi.fn().mockResolvedValue(undefined),
-}));
-
-import { getTokenConfig } from "../../src/token/config/tokens";
+import { __setTokenConfigForTest } from "../../src/token/config/tokens";
 import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
 
-const ISSUER_ADDRESS = getTokenConfig("JPYN").issuerAddress;
+// Inject a deterministic issuance id (env timing vs module load is unreliable under vitest).
+const MPT_ISSUANCE_ID = "00000000ABCDEF1234567890ABCDEF1234567890ABCD";
+__setTokenConfigForTest("JPYN", { mptIssuanceId: MPT_ISSUANCE_ID });
 
 // Helper to create Eventarc CloudEvent body with Firestore document format
 function createEventarcBody(txHash: string, fields: Record<string, unknown>) {
@@ -65,7 +62,7 @@ function mapVal(fields: Record<string, unknown>) {
 }
 
 describe("Eventarc Routes - REST API Integration", () => {
-  let app: express.Application;
+  let app: Awaited<ReturnType<typeof createCompleteTestApp>>;
   let helper: RestTestHelper;
 
   beforeAll(async () => {
@@ -118,17 +115,15 @@ describe("Eventarc Routes - REST API Integration", () => {
           Account: stringVal("rSender999"),
           Destination: stringVal("rDestination123"),
           Amount: mapVal({
-            currency: stringVal("JPYN"),
+            mpt_issuance_id: stringVal(MPT_ISSUANCE_ID),
             value: stringVal("100"),
-            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
         meta: mapVal({
           TransactionResult: stringVal("tesSUCCESS"),
           delivered_amount: mapVal({
-            currency: stringVal("JPYN"),
+            mpt_issuance_id: stringVal(MPT_ISSUANCE_ID),
             value: stringVal("100"),
-            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
       });
@@ -170,17 +165,15 @@ describe("Eventarc Routes - REST API Integration", () => {
           Account: stringVal("rSender999"),
           Destination: stringVal("rDestination123"),
           Amount: mapVal({
-            currency: stringVal("JPYN"),
+            mpt_issuance_id: stringVal(MPT_ISSUANCE_ID),
             value: stringVal("100"),
-            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
         meta: mapVal({
           TransactionResult: stringVal("tesSUCCESS"),
           delivered_amount: mapVal({
-            currency: stringVal("JPYN"),
+            mpt_issuance_id: stringVal(MPT_ISSUANCE_ID),
             value: stringVal("100"),
-            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
       });
@@ -208,9 +201,8 @@ describe("Eventarc Routes - REST API Integration", () => {
           Account: stringVal("rSender999"),
           Destination: stringVal("rDestination123"),
           Amount: mapVal({
-            currency: stringVal("JPYN"),
+            mpt_issuance_id: stringVal(MPT_ISSUANCE_ID),
             value: stringVal("100"),
-            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
         meta: mapVal({
@@ -233,17 +225,15 @@ describe("Eventarc Routes - REST API Integration", () => {
           Account: stringVal("rUser123"),
           Destination: stringVal("rIssuer456"),
           Amount: mapVal({
-            currency: stringVal("JPYN"),
+            mpt_issuance_id: stringVal(MPT_ISSUANCE_ID),
             value: stringVal("50"),
-            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
         meta: mapVal({
           TransactionResult: stringVal("tesSUCCESS"),
           delivered_amount: mapVal({
-            currency: stringVal("JPYN"),
+            mpt_issuance_id: stringVal(MPT_ISSUANCE_ID),
             value: stringVal("50"),
-            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
       });
@@ -270,17 +260,15 @@ describe("Eventarc Routes - REST API Integration", () => {
           Account: stringVal("rSender999"),
           Destination: stringVal("rExternalAddress"),
           Amount: mapVal({
-            currency: stringVal("JPYN"),
+            mpt_issuance_id: stringVal(MPT_ISSUANCE_ID),
             value: stringVal("100"),
-            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
         meta: mapVal({
           TransactionResult: stringVal("tesSUCCESS"),
           delivered_amount: mapVal({
-            currency: stringVal("JPYN"),
+            mpt_issuance_id: stringVal(MPT_ISSUANCE_ID),
             value: stringVal("100"),
-            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
       });
@@ -293,24 +281,22 @@ describe("Eventarc Routes - REST API Integration", () => {
       expect(resBody.reason).toBe("destination is not a custodial wallet");
     });
 
-    it("should skip unknown token (currency/issuer not in config)", async () => {
+    it("should skip unknown token (mpt_issuance_id not in config)", async () => {
       const body = createEventarcBody("UNKNOWNHASH", {
         transactionType: stringVal("Payment"),
         tx_json: mapVal({
           Account: stringVal("rSender999"),
           Destination: stringVal("rDestination123"),
           Amount: mapVal({
-            currency: stringVal("USD"),
+            mpt_issuance_id: stringVal("00000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
             value: stringVal("100"),
-            issuer: stringVal("rUnknownIssuer"),
           }),
         }),
         meta: mapVal({
           TransactionResult: stringVal("tesSUCCESS"),
           delivered_amount: mapVal({
-            currency: stringVal("USD"),
+            mpt_issuance_id: stringVal("00000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
             value: stringVal("100"),
-            issuer: stringVal("rUnknownIssuer"),
           }),
         }),
       });
@@ -333,17 +319,15 @@ describe("Eventarc Routes - REST API Integration", () => {
           Account: stringVal("rSender999"),
           Destination: stringVal("rDestination123"),
           Amount: mapVal({
-            currency: stringVal("JPYN"),
+            mpt_issuance_id: stringVal(MPT_ISSUANCE_ID),
             value: stringVal("100"),
-            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
         meta: mapVal({
           TransactionResult: stringVal("tesSUCCESS"),
           delivered_amount: mapVal({
-            currency: stringVal("JPYN"),
+            mpt_issuance_id: stringVal(MPT_ISSUANCE_ID),
             value: stringVal("100"),
-            issuer: stringVal(ISSUER_ADDRESS),
           }),
         }),
       });

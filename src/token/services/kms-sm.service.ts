@@ -9,6 +9,17 @@ async function getIssuerWallet(secretPath: string): Promise<Wallet> {
     return cachedWallet;
   }
 
+  // Test bypass: localnet-only TEST_ISSUER_SEED skips Secret Manager (the XRPL_NETWORK guard prevents a stray seed from replacing the KMS-protected issuer key in any real env).
+  const testSeed = process.env.TEST_ISSUER_SEED;
+  if (testSeed) {
+    if (process.env.XRPL_NETWORK !== "localnet") {
+      throw new Error("TEST_ISSUER_SEED is only allowed when XRPL_NETWORK=localnet; refusing to bypass Secret Manager");
+    }
+    console.warn("[kms-sm] Using TEST_ISSUER_SEED (localnet) — issuer signing bypasses Secret Manager");
+    cachedWallet = Wallet.fromSeed(testSeed.trim());
+    return cachedWallet;
+  }
+
   const { SecretManagerServiceClient } = await import("@google-cloud/secret-manager");
   const secretClient = new SecretManagerServiceClient();
 

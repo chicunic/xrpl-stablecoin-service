@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
-import type { Response } from "supertest";
+
+/** A fetch `Response` reduced to the fields tests assert on, with the body pre-parsed. */
+export interface TestResponse {
+  status: number;
+  body: unknown;
+  headers: Headers;
+}
 
 export const restAssert = {
-  expectSuccess(response: Response, expectedStatus = 200) {
+  expectSuccess(response: TestResponse, expectedStatus = 200) {
     assert.equal(
       response.status,
       expectedStatus,
@@ -11,18 +17,20 @@ export const restAssert = {
     assert.notEqual(response.body, undefined, "Expected response body to be defined");
   },
 
-  expectError(response: Response, expectedStatus: number, expectedMessage?: string) {
+  expectError(response: TestResponse, expectedStatus: number, expectedMessage?: string) {
     assert.equal(
       response.status,
       expectedStatus,
       `Expected status ${String(expectedStatus)}, got ${String(response.status)}`,
     );
-    const body = response.body as { error?: string };
-    assert.ok(body.error, "Expected error field to be defined");
+    // RFC 9457 Problem Details: the human-readable message lives in `detail` (with `title` as fallback).
+    const body = response.body as { detail?: string; title?: string };
+    const message = body.detail ?? body.title;
+    assert.ok(message, "Expected problem detail/title to be defined");
     if (expectedMessage) {
       assert.ok(
-        body.error.includes(expectedMessage),
-        `Expected error to contain "${expectedMessage}", got "${body.error}"`,
+        message.includes(expectedMessage),
+        `Expected problem message to contain "${expectedMessage}", got "${message}"`,
       );
     }
   },

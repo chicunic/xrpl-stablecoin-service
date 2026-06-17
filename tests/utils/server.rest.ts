@@ -1,108 +1,63 @@
-import path from "node:path";
-import express from "express";
-import * as OpenApiValidator from "express-openapi-validator";
-import request, { type Response } from "supertest";
+import app from "../../src/token/app";
+import type { TestResponse } from "./helpers";
 
-function createTestAppWithValidation(): express.Application {
-  const app = express();
-  app.use(express.json());
+/**
+ * Drives the Hono token app via `app.request()` (no network). Mirrors the old
+ * supertest-based helper surface so route tests need no changes: each method
+ * returns a `TestResponse` with the body already parsed.
+ */
+async function send(
+  method: string,
+  url: string,
+  data?: Record<string, unknown>,
+  headers?: Record<string, string>,
+): Promise<TestResponse> {
+  const init: RequestInit = { method };
+  const hdrs = new Headers(headers);
+  if (data !== undefined) {
+    hdrs.set("content-type", "application/json");
+    init.body = JSON.stringify(data);
+  }
+  init.headers = hdrs;
 
-  app.use(
-    OpenApiValidator.middleware({
-      apiSpec: path.join(__dirname, "../../src/token/swagger.json"),
-      validateRequests: true,
-      validateResponses: false,
-    }),
-  );
+  const res = await app.request(url, init);
 
-  return app;
-}
-
-interface HttpError {
-  status?: number;
-  message?: string;
-  errors?: unknown;
-}
-
-function addErrorHandlingToTestApp(app: express.Application): void {
-  app.use((err: HttpError, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    if (err.status && err.status < 500) {
-      res.status(err.status).json({
-        error: err.message,
-        details: err.errors,
-      });
-      return;
+  let body: unknown = undefined;
+  const text = await res.text();
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = text;
     }
-
-    res.status(500).json({ error: "Internal server error" });
-  });
-}
-
-export async function createCompleteTestApp(): Promise<express.Application> {
-  const app = createTestAppWithValidation();
-
-  const authRoutes = (await import("../../src/token/routes/auth.route")).default;
-  const kycRoutes = (await import("../../src/token/routes/kyc.route")).default;
-  const mfaRoutes = (await import("../../src/token/routes/mfa.route")).default;
-  const tokenRoutes = (await import("../../src/token/routes/token.route")).default;
-  const pubsubRoutes = (await import("../../src/token/routes/pubsub.route")).default;
-  const eventarcRoutes = (await import("../../src/token/routes/eventarc.route")).default;
-  const balanceRoutes = (await import("../../src/token/routes/balance.route")).default;
-  const whitelistRoutes = (await import("../../src/token/routes/whitelist.route")).default;
-  const credentialRoutes = (await import("../../src/token/routes/credential.route")).default;
-  const dexRoutes = (await import("../../src/token/routes/dex.route")).default;
-
-  app.get("/health", (_req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
-
-  app.use("/api/v1", authRoutes);
-  app.use("/api/v1", kycRoutes);
-  app.use("/api/v1", mfaRoutes);
-  app.use("/api/v1", tokenRoutes);
-  app.use("/api/v1", pubsubRoutes);
-  app.use("/api/v1", eventarcRoutes);
-  app.use("/api/v1", balanceRoutes);
-  app.use("/api/v1", whitelistRoutes);
-  app.use("/api/v1", credentialRoutes);
-  app.use("/api/v1", dexRoutes);
-
-  addErrorHandlingToTestApp(app);
-
-  return app;
+  }
+  return { status: res.status, body, headers: res.headers };
 }
 
 export class RestTestHelper {
-  constructor(private app: express.Application) {}
-
-  get request() {
-    return request(this.app);
+  // Accepts an optional app for backward compatibility with `new RestTestHelper(app)`; unused.
+  constructor(_app?: unknown) {
+    void _app;
   }
 
-  private applyHeaders(req: request.Test, headers?: Record<string, string>): request.Test {
-    if (headers) {
-      for (const [key, value] of Object.entries(headers)) req.set(key, value);
-    }
-    return req;
+  async post(url: string, data: Record<string, unknown>, headers?: Record<string, string>): Promise<TestResponse> {
+    return send("POST", url, data, headers);
   }
 
-  async post(url: string, data: Record<string, unknown>, headers?: Record<string, string>): Promise<Response> {
-    const req = this.request.post(url).send(data);
-    return this.applyHeaders(req, headers);
+  async get(url: string, headers?: Record<string, string>): Promise<TestResponse> {
+    return send("GET", url, undefined, headers);
   }
 
-  async get(url: string, headers?: Record<string, string>) {
-    const req = this.request.get(url);
-    return this.applyHeaders(req, headers);
+  async delete(url: string, headers?: Record<string, string>): Promise<TestResponse> {
+    return send("DELETE", url, undefined, headers);
   }
 
-  async delete(url: string, headers?: Record<string, string>) {
-    const req = this.request.delete(url);
-    return this.applyHeaders(req, headers);
+  async patch(url: string, data: Record<string, unknown>, headers?: Record<string, string>): Promise<TestResponse> {
+    return send("PATCH", url, data, headers);
   }
+}
 
-  async patch(url: string, data: Record<string, unknown>, headers?: Record<string, string>): Promise<Response> {
-    const req = this.request.patch(url).send(data);
-    return this.applyHeaders(req, headers);
-  }
+/** Kept for API compatibility; the Hono app is imported directly. */
+export function createCompleteTestApp(): Promise<typeof app> {
+  return Promise.resolve(app);
 }

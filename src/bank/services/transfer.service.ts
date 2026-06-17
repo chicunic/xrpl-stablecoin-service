@@ -4,24 +4,19 @@ import { getVirtualAccountByBranchAndNumber } from "@bank/services/virtual-accou
 import type { Counterparty } from "@bank/types/bank-transaction.type.js";
 import { getFirestore } from "@common/config/firebase.js";
 import { BANK_DEPOSIT_TOPIC, publishMessage } from "@common/config/pubsub.js";
+import { assertSafeAmount } from "@common/utils/amount.js";
 import { NotFoundError, ValidationError } from "@common/utils/error.handler.js";
 import { FieldValue } from "firebase-admin/firestore";
 
 const BANK_ACCOUNTS_COLLECTION = "bank_accounts";
 const BANK_TRANSACTIONS_COLLECTION = "bank_transactions";
 
-function validatePositiveAmount(amount: number): void {
-  if (amount <= 0) {
-    throw new ValidationError("Invalid: amount must be positive");
-  }
-}
-
 async function atmTransaction(
   accountId: string,
   amount: number,
   type: "atm_in" | "atm_out",
 ): Promise<{ balance: number }> {
-  validatePositiveAmount(amount);
+  assertSafeAmount(amount);
 
   const db = getFirestore();
   return db.runTransaction(async (tx) => {
@@ -83,18 +78,7 @@ export async function transfer(
   amount: number,
   idempotencyKey?: string,
 ): Promise<{ balance: number; transactionId: string }> {
-  validatePositiveAmount(amount);
-
-  // Idempotency check: return cached result if already processed
-  if (idempotencyKey) {
-    const db = getFirestore();
-    const idempotencyRef = db.collection("bank_processed_transfers").doc(idempotencyKey);
-    const existing = await idempotencyRef.get();
-    const data = existing.data();
-    if (data) {
-      return { balance: data.balance as number, transactionId: data.transactionId as string };
-    }
-  }
+  assertSafeAmount(amount);
 
   let toAccount = await getAccountByBranchAndNumber(toBranchCode, toAccountNumber);
   let virtualAccountNumber: string | undefined;
@@ -119,7 +103,18 @@ export async function transfer(
   }
 
   const db = getFirestore();
+  const idempotencyRef = idempotencyKey ? db.collection("bank_processed_transfers").doc(idempotencyKey) : undefined;
+
   const result = await db.runTransaction(async (tx) => {
+    // Idempotency check and recording share this transaction with the balance updates, so a retry can never apply the transfer twice.
+    if (idempotencyRef) {
+      const existing = await tx.get(idempotencyRef);
+      const data = existing.data();
+      if (data) {
+        return { balance: data.balance as number, transactionId: data.transactionId as string };
+      }
+    }
+
     const fromRef = db.collection(BANK_ACCOUNTS_COLLECTION).doc(fromAccountId);
     const toRef = db.collection(BANK_ACCOUNTS_COLLECTION).doc(toAccount.accountId);
 
@@ -204,20 +199,18 @@ export async function transfer(
     }
     tx.set(receiverTxRef, receiverTxData);
 
+    if (idempotencyRef) {
+      tx.set(idempotencyRef, {
+        transactionId: senderTxId,
+        balance: senderNewBalance,
+        fromAccountId,
+        amount,
+        processedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
     return { balance: senderNewBalance, transactionId: senderTxId };
   });
-
-  // Record idempotency key after successful transaction
-  if (idempotencyKey) {
-    const db = getFirestore();
-    await db.collection("bank_processed_transfers").doc(idempotencyKey).set({
-      transactionId: result.transactionId,
-      balance: result.balance,
-      fromAccountId,
-      amount,
-      processedAt: FieldValue.serverTimestamp(),
-    });
-  }
 
   if (toAccount.pubsubEnabled) {
     const messageData: Record<string, unknown> = {

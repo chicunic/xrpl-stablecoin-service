@@ -3,34 +3,25 @@ import type { BankAccountData } from "@bank/types/bank-account.type.js";
 import type { BankVirtualAccountData } from "@bank/types/bank-virtual-account.type.js";
 import { getFirestore } from "@common/config/firebase.js";
 import { NotFoundError, ValidationError } from "@common/utils/error.handler.js";
+import { incrementCounter } from "@common/utils/firestore.js";
 import { FieldValue } from "firebase-admin/firestore";
 
 const BANK_ACCOUNTS_COLLECTION = "bank_accounts";
 const BANK_VIRTUAL_ACCOUNTS_COLLECTION = "bank_virtual_accounts";
+const BANK_COUNTERS_COLLECTION = "bank_counters";
 
-async function incrementCounter(counterName: string, maxValue?: number): Promise<number> {
-  const db = getFirestore();
-  const counterRef = db.collection("bank_counters").doc(counterName);
-
-  return db.runTransaction(async (tx) => {
-    const counterDoc = await tx.get(counterRef);
-    const current = counterDoc.exists ? (counterDoc.data()?.value as number) : 0;
-    const next = current + 1;
-    if (maxValue !== undefined && next > maxValue) {
-      throw new ValidationError(`Invalid: ${counterName} range exceeded`);
-    }
-    tx.set(counterRef, { value: next });
-    return next;
-  });
+function omitPin(account: BankAccountData): Omit<BankAccountData, "pin"> {
+  const { pin: _pin, ...safe } = account;
+  return safe;
 }
 
 async function allocatePersonalAccountNumber(): Promise<string> {
-  const seq = await incrementCounter("personalAccountNumber");
+  const seq = await incrementCounter(BANK_COUNTERS_COLLECTION, "personalAccountNumber");
   return seq.toString().padStart(7, "0");
 }
 
 async function allocateCorporateAccountNumber(): Promise<string> {
-  const seq = await incrementCounter("corporateAccountNumber", 999);
+  const seq = await incrementCounter(BANK_COUNTERS_COLLECTION, "corporateAccountNumber", 999);
   return `${seq.toString().padStart(3, "0")}0000`;
 }
 
@@ -64,29 +55,13 @@ export async function createAccount(
   await db.collection(BANK_ACCOUNTS_COLLECTION).doc(accountId).set(account);
 
   const created = await db.collection(BANK_ACCOUNTS_COLLECTION).doc(accountId).get();
-  const data = created.data() as BankAccountData;
-  const { pin: _, ...safeData } = data;
-  void _;
-  return safeData;
+  return omitPin(created.data() as BankAccountData);
 }
 
 export async function login(branchCode: string, accountNumber: string, pin: string): Promise<BankAccountData> {
-  const db = getFirestore();
+  const account = await getAccountByBranchAndNumber(branchCode, accountNumber);
 
-  const snapshot = await db
-    .collection(BANK_ACCOUNTS_COLLECTION)
-    .where("branchCode", "==", branchCode)
-    .where("accountNumber", "==", accountNumber)
-    .limit(1)
-    .get();
-
-  if (snapshot.empty) {
-    throw new ValidationError("Invalid credentials");
-  }
-
-  const account = snapshot.docs[0]?.data() as BankAccountData;
-
-  if (account.pin !== pin) {
+  if (account?.pin !== pin) {
     throw new ValidationError("Invalid credentials");
   }
 
@@ -153,16 +128,8 @@ export async function lookupAccount(
   parentAccountNumber?: string;
   label?: string;
 } | null> {
-  const db = getFirestore();
-  const snapshot = await db
-    .collection(BANK_ACCOUNTS_COLLECTION)
-    .where("branchCode", "==", branchCode)
-    .where("accountNumber", "==", accountNumber)
-    .limit(1)
-    .get();
-
-  if (!snapshot.empty) {
-    const account = snapshot.docs[0]?.data() as BankAccountData;
+  const account = await getAccountByBranchAndNumber(branchCode, accountNumber);
+  if (account) {
     return {
       accountHolder: account.accountHolder,
       bankCode: account.bankCode,
@@ -171,6 +138,7 @@ export async function lookupAccount(
     };
   }
 
+  const db = getFirestore();
   const virtualSnapshot = await db
     .collection(BANK_VIRTUAL_ACCOUNTS_COLLECTION)
     .where("branchCode", "==", branchCode)
@@ -224,10 +192,7 @@ export async function updateAccount(
   await docRef.update(updateData);
 
   const updated = await docRef.get();
-  const data = updated.data() as BankAccountData;
-  const { pin: _, ...safeData } = data;
-  void _;
-  return safeData;
+  return omitPin(updated.data() as BankAccountData);
 }
 
 export async function changePin(accountId: string, oldPin: string, newPin: string): Promise<void> {

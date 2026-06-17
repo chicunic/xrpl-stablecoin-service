@@ -1,12 +1,18 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import type { NextFunction, Request, Response } from "express";
+import { extractBearerToken } from "@common/utils/auth-header.js";
+import { createMiddleware } from "hono/factory";
+import { HTTPException } from "hono/http-exception";
 
 export type TokenType = "session" | "api";
 
-export interface BankAuthenticatedRequest extends Request {
-  bankUser: {
-    accountId: string;
-    tokenType: TokenType;
+export interface BankUser {
+  accountId: string;
+  tokenType: TokenType;
+}
+
+export interface BankEnv {
+  Variables: {
+    bankUser: BankUser;
   };
 }
 
@@ -85,36 +91,24 @@ export function verifyToken(token: string): { accountId: string; tokenType: Toke
   return { accountId: decoded.accountId, tokenType: decoded.type === "api" ? "api" : "session" };
 }
 
-export function requireBankAuth(req: Request, res: Response, next: NextFunction): void {
-  let token: string | undefined;
-
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith("Bearer ")) {
-    token = authHeader.slice(7);
-  }
+export const requireBankAuth = createMiddleware<BankEnv>(async (c, next) => {
+  const token = extractBearerToken(c.req.header("authorization"));
 
   if (!token) {
-    res.status(401).json({ error: "Missing or invalid Authorization header" });
-    return;
+    throw new HTTPException(401, { message: "Missing or invalid Authorization header" });
   }
 
   try {
-    const decoded = verifyToken(token);
-    (req as BankAuthenticatedRequest).bankUser = {
-      accountId: decoded.accountId,
-      tokenType: decoded.tokenType,
-    };
-    next();
+    c.set("bankUser", verifyToken(token));
   } catch {
-    res.status(401).json({ error: "Invalid or expired token" });
+    throw new HTTPException(401, { message: "Invalid or expired token" });
   }
-}
+  await next();
+});
 
-export function rejectApiToken(req: Request, res: Response, next: NextFunction): void {
-  const { tokenType } = (req as BankAuthenticatedRequest).bankUser;
-  if (tokenType === "api") {
-    res.status(403).json({ error: "API tokens are not allowed for this endpoint" });
-    return;
+export const rejectApiToken = createMiddleware<BankEnv>(async (c, next) => {
+  if (c.get("bankUser").tokenType === "api") {
+    throw new HTTPException(403, { message: "API tokens are not allowed for this endpoint" });
   }
-  next();
-}
+  await next();
+});

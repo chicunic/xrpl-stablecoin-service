@@ -1,8 +1,7 @@
 import type { AcceptedCredential } from "@token/config/tokens.js";
 import { getTokenConfig } from "@token/config/tokens.js";
-import { signWithKms } from "@token/services/signing.service.js";
-import { getClient } from "@token/services/xrpl.service.js";
-import { type SubmitResponse, type SubmittableTransaction, encodeForSigning } from "xrpl";
+import { extractTxHash, getClient, signAndSubmitWithIssuer } from "@token/services/xrpl.service.js";
+import type { SubmittableTransaction, TxResponse } from "xrpl";
 
 interface AuthorizeCredential {
   Credential: { Issuer: string; CredentialType: string };
@@ -14,26 +13,9 @@ function toAuthorizeCredentials(accepted: AcceptedCredential[]): AuthorizeCreden
   }));
 }
 
-function extractTxHash(result: SubmitResponse): string {
-  if (result.result.engine_result !== "tesSUCCESS") {
-    throw new Error(`XRPL transaction failed: ${result.result.engine_result_message}`);
-  }
-  return result.result.tx_json.hash ?? "";
-}
-
-interface XrplClient {
-  autofill: (tx: SubmittableTransaction) => Promise<SubmittableTransaction>;
-  submit: (tx: string | SubmittableTransaction) => Promise<SubmitResponse>;
-}
-
-async function signWithIssuer(xrplClient: XrplClient, tx: Record<string, unknown>): Promise<SubmitResponse> {
+async function signWithIssuer(tx: Record<string, unknown>): Promise<TxResponse> {
   const { kmsKeyPath, signingPublicKey } = getTokenConfig("JPYN");
-  const prepared = await xrplClient.autofill(tx as unknown as SubmittableTransaction);
-  (prepared as Record<string, unknown>).SigningPubKey = signingPublicKey;
-  const encodedTx = encodeForSigning(prepared);
-  const signature = await signWithKms(Buffer.from(encodedTx, "hex"), kmsKeyPath);
-  const signed = { ...prepared, TxnSignature: signature } as SubmittableTransaction;
-  return xrplClient.submit(signed);
+  return signAndSubmitWithIssuer(tx as unknown as SubmittableTransaction, kmsKeyPath, signingPublicKey);
 }
 
 interface AffectedNode {
@@ -43,19 +25,13 @@ interface AffectedNode {
   };
 }
 
-interface TxMeta {
-  AffectedNodes?: AffectedNode[];
-}
-
 interface TxJsonWithSequence {
   Sequence?: number;
-  meta?: TxMeta;
 }
 
 export async function createDomain(
   acceptedCredentials: AcceptedCredential[],
 ): Promise<{ txHash: string; domainId: string }> {
-  const xrplClient = await getClient();
   const { issuerAddress } = getTokenConfig("JPYN");
 
   const tx: Record<string, unknown> = {
@@ -64,19 +40,17 @@ export async function createDomain(
     AcceptedCredentials: toAuthorizeCredentials(acceptedCredentials),
   };
 
-  const result = await signWithIssuer(xrplClient, tx);
+  const result = await signWithIssuer(tx);
   const txHash = extractTxHash(result);
 
-  // The actual DomainID is in the metadata's CreatedNode
-  const txResult = result.result as Record<string, unknown>;
-  const meta = (txResult.meta as TxMeta | undefined) ?? (txResult.tx_json as TxJsonWithSequence | undefined)?.meta;
+  // The actual DomainID is in the validated metadata's CreatedNode.
+  const meta = result.result.meta;
+  const affectedNodes = typeof meta === "object" ? meta.AffectedNodes : undefined;
   let createdDomainId = "";
-  if (meta?.AffectedNodes) {
-    for (const node of meta.AffectedNodes) {
-      if (node.CreatedNode?.LedgerEntryType === "PermissionedDomain") {
-        createdDomainId = node.CreatedNode.LedgerIndex;
-        break;
-      }
+  for (const node of (affectedNodes as AffectedNode[] | undefined) ?? []) {
+    if (node.CreatedNode?.LedgerEntryType === "PermissionedDomain") {
+      createdDomainId = node.CreatedNode.LedgerIndex;
+      break;
     }
   }
 
@@ -85,7 +59,6 @@ export async function createDomain(
 }
 
 export async function updateDomain(domainId: string, acceptedCredentials: AcceptedCredential[]): Promise<string> {
-  const xrplClient = await getClient();
   const { issuerAddress } = getTokenConfig("JPYN");
 
   const tx: Record<string, unknown> = {
@@ -95,12 +68,11 @@ export async function updateDomain(domainId: string, acceptedCredentials: Accept
     AcceptedCredentials: toAuthorizeCredentials(acceptedCredentials),
   };
 
-  const result = await signWithIssuer(xrplClient, tx);
+  const result = await signWithIssuer(tx);
   return extractTxHash(result);
 }
 
 export async function deleteDomain(domainId: string): Promise<string> {
-  const xrplClient = await getClient();
   const { issuerAddress } = getTokenConfig("JPYN");
 
   const tx: Record<string, unknown> = {
@@ -109,7 +81,7 @@ export async function deleteDomain(domainId: string): Promise<string> {
     DomainID: domainId,
   };
 
-  const result = await signWithIssuer(xrplClient, tx);
+  const result = await signWithIssuer(tx);
   return extractTxHash(result);
 }
 

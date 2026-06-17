@@ -1,9 +1,8 @@
-import type express from "express";
 import { restAssert } from "../utils/helpers";
 import { mockIdentityPlatformAuth } from "../utils/mock.index";
 import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
 
-const mockGenerateMfaToken = vi.fn();
+const { mockGenerateMfaToken } = vi.hoisted(() => ({ mockGenerateMfaToken: vi.fn() }));
 
 vi.mock("../../src/token/services/mfa-token.service", () => ({
   generateMfaToken: mockGenerateMfaToken,
@@ -14,17 +13,10 @@ vi.mock("../../src/token/services/mfa-token.service", () => ({
 vi.mock("../../src/token/services/wallet.service", () => ({
   deriveWallet: vi.fn().mockReturnValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
   getWalletForSigning: vi.fn().mockReturnValue({ sign: vi.fn() }),
-  allocateXrpAddressIndex: vi.fn().mockResolvedValue(1),
 }));
 
 vi.mock("../../src/token/services/faucet.service", () => ({
   fundAccount: vi.fn().mockResolvedValue({ balance: 1000 }),
-}));
-
-vi.mock("../../src/token/services/trustline.service", () => ({
-  hasTrustLine: vi.fn().mockResolvedValue(false),
-  setTrustLine: vi.fn().mockResolvedValue("mock-trustline-tx-hash"),
-  ensureTrustLine: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../../src/token/config/bank", () => ({
@@ -33,7 +25,7 @@ vi.mock("../../src/token/config/bank", () => ({
 }));
 
 describe("MFA Routes - REST API Integration", () => {
-  let app: express.Application;
+  let app: Awaited<ReturnType<typeof createCompleteTestApp>>;
   let helper: RestTestHelper;
 
   beforeAll(async () => {

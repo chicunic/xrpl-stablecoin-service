@@ -1,4 +1,4 @@
-import { type BankAuthenticatedRequest, requireBankAuth } from "@bank/middleware/bank-auth.js";
+import { type BankEnv, requireBankAuth } from "@bank/middleware/bank-auth.js";
 import { getAccountById } from "@bank/services/account.service.js";
 import {
   createVirtualAccount,
@@ -6,99 +6,139 @@ import {
   listVirtualAccounts,
   updateVirtualAccount,
 } from "@bank/services/virtual-account.service.js";
-import { handleRouteError } from "@common/utils/error.handler.js";
-import type { Response, Router as RouterType } from "express";
-import { Router } from "express";
+import { serializeTimestamps } from "@common/utils/json.replacer.js";
+import { defaultHook, jsonError } from "@common/utils/problem.js";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { HTTPException } from "hono/http-exception";
 
-const router: RouterType = Router();
+const app = new OpenAPIHono<BankEnv>({ defaultHook: defaultHook() });
 
-router.post("/accounts/me/virtual-accounts", requireBankAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { accountId } = (req as BankAuthenticatedRequest).bankUser;
+const auth = { security: [{ bearer: [] }], middleware: [requireBankAuth] };
 
-    const account = await getAccountById(accountId);
-    if (account?.accountType !== "corporate") {
-      res.status(403).json({ error: "Invalid: only corporate accounts can create virtual accounts" });
-      return;
-    }
+const VirtualAccountIdParam = z.object({
+  virtualAccountId: z.string().meta({ param: { name: "virtualAccountId", in: "path" } }),
+});
 
-    const { label } = req.body as { label: string };
+const CreateVirtualAccountInput = z.object({ label: z.string().min(1) }).meta({ id: "CreateVirtualAccountInput" });
+
+const PatchVirtualAccountInput = z
+  .object({
+    label: z.string().min(1).optional(),
+    isActive: z.boolean().optional(),
+  })
+  .meta({ id: "PatchVirtualAccountInput" });
+
+/** Shared corporate-account guard. */
+async function requireCorporate(accountId: string): Promise<void> {
+  const account = await getAccountById(accountId);
+  if (account?.accountType !== "corporate") {
+    throw new HTTPException(403, { message: "Invalid: only corporate accounts can manage virtual accounts" });
+  }
+}
+
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/accounts/me/virtual-accounts",
+    summary: "Create a virtual account",
+    tags: ["VirtualAccount"],
+    ...auth,
+    request: { body: { content: { "application/json": { schema: CreateVirtualAccountInput } }, required: true } },
+    responses: {
+      201: { content: { "application/json": { schema: z.any() } }, description: "Created" },
+      400: jsonError("Validation error"),
+      401: jsonError("Unauthorized"),
+      403: jsonError("Corporate accounts only"),
+    },
+  }),
+  async (c) => {
+    const { accountId } = c.get("bankUser");
+    await requireCorporate(accountId);
+    const { label } = c.req.valid("json");
     const virtualAccount = await createVirtualAccount(accountId, label);
-
-    res.status(201).json(virtualAccount);
-  } catch (error) {
-    handleRouteError(error, res, "POST /accounts/me/virtual-accounts");
-  }
-});
-
-router.get("/accounts/me/virtual-accounts", requireBankAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { accountId } = (req as BankAuthenticatedRequest).bankUser;
-
-    const account = await getAccountById(accountId);
-    if (account?.accountType !== "corporate") {
-      res.status(403).json({ error: "Invalid: only corporate accounts can list virtual accounts" });
-      return;
-    }
-
-    const virtualAccounts = await listVirtualAccounts(accountId);
-    res.json(virtualAccounts);
-  } catch (error) {
-    handleRouteError(error, res, "GET /accounts/me/virtual-accounts");
-  }
-});
-
-router.get("/accounts/me/virtual-accounts/:virtualAccountId", requireBankAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { accountId } = (req as BankAuthenticatedRequest).bankUser;
-    const virtualAccountId = req.params.virtualAccountId as string;
-
-    const account = await getAccountById(accountId);
-    if (account?.accountType !== "corporate") {
-      res.status(403).json({ error: "Invalid: only corporate accounts can view virtual accounts" });
-      return;
-    }
-
-    const virtualAccount = await getVirtualAccountById(virtualAccountId);
-    if (virtualAccount?.parentAccountId !== accountId) {
-      res.status(404).json({ error: "Virtual account not found" });
-      return;
-    }
-
-    res.json(virtualAccount);
-  } catch (error) {
-    handleRouteError(error, res, "GET /accounts/me/virtual-accounts/:virtualAccountId");
-  }
-});
-
-router.patch(
-  "/accounts/me/virtual-accounts/:virtualAccountId",
-  requireBankAuth,
-  async (req, res: Response<unknown>) => {
-    try {
-      const { accountId } = (req as BankAuthenticatedRequest).bankUser;
-      const virtualAccountId = req.params.virtualAccountId as string;
-
-      const account = await getAccountById(accountId);
-      if (account?.accountType !== "corporate") {
-        res.status(403).json({ error: "Invalid: only corporate accounts can update virtual accounts" });
-        return;
-      }
-
-      const virtualAccount = await getVirtualAccountById(virtualAccountId);
-      if (virtualAccount?.parentAccountId !== accountId) {
-        res.status(404).json({ error: "Virtual account not found" });
-        return;
-      }
-
-      const { label, isActive } = req.body as { label?: string; isActive?: boolean };
-      const updated = await updateVirtualAccount(virtualAccountId, { label, isActive });
-
-      res.json(updated);
-    } catch (error) {
-      handleRouteError(error, res, "PATCH /accounts/me/virtual-accounts/:virtualAccountId");
-    }
+    return c.json(serializeTimestamps(virtualAccount), 201);
   },
 );
 
-export default router;
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/accounts/me/virtual-accounts",
+    summary: "List virtual accounts",
+    tags: ["VirtualAccount"],
+    ...auth,
+    responses: {
+      200: { content: { "application/json": { schema: z.any() } }, description: "Virtual accounts" },
+      401: jsonError("Unauthorized"),
+      403: jsonError("Corporate accounts only"),
+    },
+  }),
+  async (c) => {
+    const { accountId } = c.get("bankUser");
+    await requireCorporate(accountId);
+    const virtualAccounts = await listVirtualAccounts(accountId);
+    return c.json(serializeTimestamps(virtualAccounts), 200);
+  },
+);
+
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/accounts/me/virtual-accounts/{virtualAccountId}",
+    summary: "Get a virtual account",
+    tags: ["VirtualAccount"],
+    ...auth,
+    request: { params: VirtualAccountIdParam },
+    responses: {
+      200: { content: { "application/json": { schema: z.any() } }, description: "Virtual account" },
+      401: jsonError("Unauthorized"),
+      403: jsonError("Corporate accounts only"),
+      404: jsonError("Virtual account not found"),
+    },
+  }),
+  async (c) => {
+    const { accountId } = c.get("bankUser");
+    await requireCorporate(accountId);
+    const { virtualAccountId } = c.req.valid("param");
+    const virtualAccount = await getVirtualAccountById(virtualAccountId);
+    if (virtualAccount?.parentAccountId !== accountId) {
+      throw new HTTPException(404, { message: "Virtual account not found" });
+    }
+    return c.json(serializeTimestamps(virtualAccount), 200);
+  },
+);
+
+app.openapi(
+  createRoute({
+    method: "patch",
+    path: "/accounts/me/virtual-accounts/{virtualAccountId}",
+    summary: "Update a virtual account",
+    tags: ["VirtualAccount"],
+    ...auth,
+    request: {
+      params: VirtualAccountIdParam,
+      body: { content: { "application/json": { schema: PatchVirtualAccountInput } }, required: true },
+    },
+    responses: {
+      200: { content: { "application/json": { schema: z.any() } }, description: "Updated" },
+      400: jsonError("Validation error"),
+      401: jsonError("Unauthorized"),
+      403: jsonError("Corporate accounts only"),
+      404: jsonError("Virtual account not found"),
+    },
+  }),
+  async (c) => {
+    const { accountId } = c.get("bankUser");
+    await requireCorporate(accountId);
+    const { virtualAccountId } = c.req.valid("param");
+    const virtualAccount = await getVirtualAccountById(virtualAccountId);
+    if (virtualAccount?.parentAccountId !== accountId) {
+      throw new HTTPException(404, { message: "Virtual account not found" });
+    }
+    const { label, isActive } = c.req.valid("json");
+    const updated = await updateVirtualAccount(virtualAccountId, { label, isActive });
+    return c.json(serializeTimestamps(updated), 200);
+  },
+);
+
+export default app;

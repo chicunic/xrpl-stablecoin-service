@@ -1,4 +1,5 @@
-import { convertHexToString, convertStringToHex } from "xrpl";
+import type { MPTokenMetadata } from "xrpl";
+import { convertStringToHex } from "xrpl";
 
 export interface AcceptedCredential {
   issuer: string;
@@ -8,11 +9,15 @@ export interface AcceptedCredential {
 export interface TokenConfig {
   tokenId: string;
   name: string;
-  currency: string;
   domain: string;
   issuerAddress: string;
   kmsKeyPath: string;
   signingPublicKey: string;
+  mptIssuanceId: string;
+  assetScale: number;
+  maximumAmount: string;
+  transferFee: number;
+  mptMetadata?: MPTokenMetadata;
   permissionedDomainId?: string;
   acceptedCredentials: AcceptedCredential[];
 }
@@ -21,11 +26,23 @@ const TOKEN_CONFIGS: Record<string, TokenConfig> = {
   JPYN: {
     tokenId: "JPYN",
     name: "JPYN",
-    currency: "JPYN",
     domain: "nexbridge.dev",
     issuerAddress: "rpPqDaWncvBULqLLZULS4svoi1fxW4sPjp",
     kmsKeyPath: process.env.JPYN_KMS_KEY_PATH ?? "",
     signingPublicKey: "ED9CBF796AF94F722DE72A56FFD44E2239E92151A593BE69E51FDF86DDEA04EEE5",
+    mptIssuanceId: process.env.JPYN_MPT_ISSUANCE_ID ?? "",
+    assetScale: 0,
+    maximumAmount: "100000000",
+    transferFee: 0,
+    mptMetadata: {
+      ticker: "JPYN",
+      name: "JPYN Stablecoin",
+      desc: "JPY-backed stablecoin issued on XRPL",
+      icon: "https://nexbridge.dev/jpyn-icon.png",
+      asset_class: "rwa",
+      asset_subclass: "stablecoin",
+      issuer_name: "NexBridge",
+    },
     permissionedDomainId: process.env.JPYN_DOMAIN_ID ?? "",
     acceptedCredentials: [
       {
@@ -48,14 +65,14 @@ export function getAllTokenConfigs(): TokenConfig[] {
   return Object.values(TOKEN_CONFIGS);
 }
 
-export function toXrplCurrency(code: string): string {
-  if (code.length === 3) return code;
-  if (code.length > 3) return convertStringToHex(code).padEnd(40, "0");
-  throw new Error(`Invalid currency code: "${code}" (must be >= 3 characters)`);
-}
-
-export function fromXrplCurrency(hex: string): string {
-  if (hex.length === 3) return hex;
-  if (hex.length === 40) return convertHexToString(hex).replace(/\0/g, "");
-  return hex;
+/**
+ * Test-only: override a token config at runtime (used by localnet integration tests
+ * to inject a freshly-created issuer / domain / issuance). Never called in production.
+ */
+export function __setTokenConfigForTest(tokenId: string, overrides: Partial<TokenConfig>): void {
+  const existing = TOKEN_CONFIGS[tokenId];
+  if (!existing) {
+    throw new Error(`Unknown token: ${tokenId}`);
+  }
+  TOKEN_CONFIGS[tokenId] = { ...existing, ...overrides };
 }

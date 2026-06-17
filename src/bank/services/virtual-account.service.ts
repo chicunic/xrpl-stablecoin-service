@@ -3,27 +3,15 @@ import { getAccountById } from "@bank/services/account.service.js";
 import type { BankVirtualAccountData } from "@bank/types/bank-virtual-account.type.js";
 import { getFirestore } from "@common/config/firebase.js";
 import { NotFoundError, ValidationError } from "@common/utils/error.handler.js";
+import { incrementCounter } from "@common/utils/firestore.js";
 import { FieldValue } from "firebase-admin/firestore";
 
 const BANK_VIRTUAL_ACCOUNTS_COLLECTION = "bank_virtual_accounts";
 
 async function allocateVirtualAccountNumber(parentAccountNumber: string): Promise<string> {
   const corporatePrefix = parentAccountNumber.substring(0, 3);
-  const db = getFirestore();
-  const counterRef = db.collection("bank_counters").doc(`virtualAccount:${corporatePrefix}`);
-
-  const result = await db.runTransaction(async (tx) => {
-    const counterDoc = await tx.get(counterRef);
-    const current = counterDoc.exists ? (counterDoc.data()?.value as number) : 0;
-    const next = current + 1;
-    if (next > 9999) {
-      throw new ValidationError("Invalid: virtual account number range exceeded");
-    }
-    tx.set(counterRef, { value: next });
-    return next;
-  });
-
-  return `${corporatePrefix}${result.toString().padStart(4, "0")}`;
+  const seq = await incrementCounter("bank_counters", `virtualAccount:${corporatePrefix}`, 9999);
+  return `${corporatePrefix}${seq.toString().padStart(4, "0")}`;
 }
 
 export async function createVirtualAccount(parentAccountId: string, label: string): Promise<BankVirtualAccountData> {

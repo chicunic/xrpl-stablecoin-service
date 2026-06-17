@@ -17,7 +17,7 @@ function extractArray<T>(doc: DocumentSnapshot, field: string): T[] {
   return (doc.data()?.[field] as T[] | undefined) ?? [];
 }
 
-export async function addXrpWhitelist(userId: string, address: string, label: string): Promise<WhitelistAddress> {
+export async function addXrplWhitelist(userId: string, address: string, label: string): Promise<WhitelistAddress> {
   const docRef = whitelistDocRef(userId, "xrpWhitelist");
   const addresses = extractArray<WhitelistAddress>(await docRef.get(), "addresses");
 
@@ -32,7 +32,7 @@ export async function addXrpWhitelist(userId: string, address: string, label: st
   return entry;
 }
 
-export async function removeXrpWhitelist(userId: string, address: string): Promise<void> {
+export async function removeXrplWhitelist(userId: string, address: string): Promise<void> {
   const docRef = whitelistDocRef(userId, "xrpWhitelist");
   const addresses = extractArray<WhitelistAddress>(await docRef.get(), "addresses");
   const idx = addresses.findIndex((w) => w.address === address);
@@ -45,11 +45,11 @@ export async function removeXrpWhitelist(userId: string, address: string): Promi
   await docRef.set({ addresses }, { merge: true });
 }
 
-export async function getXrpWhitelist(userId: string): Promise<WhitelistAddress[]> {
+export async function getXrplWhitelist(userId: string): Promise<WhitelistAddress[]> {
   return extractArray<WhitelistAddress>(await whitelistDocRef(userId, "xrpWhitelist").get(), "addresses");
 }
 
-export function isXrpWhitelisted(whitelist: WhitelistAddress[], address: string): boolean {
+export function isXrplWhitelisted(whitelist: WhitelistAddress[], address: string): boolean {
   return whitelist.some((w) => w.address === address);
 }
 

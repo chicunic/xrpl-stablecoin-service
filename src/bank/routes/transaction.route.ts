@@ -1,20 +1,29 @@
-import { type BankAuthenticatedRequest, requireBankAuth } from "@bank/middleware/bank-auth.js";
+import { type BankEnv, requireBankAuth } from "@bank/middleware/bank-auth.js";
 import { getTransactionsByAccount } from "@bank/services/transaction.service.js";
-import { handleRouteError } from "@common/utils/error.handler.js";
-import type { Response, Router as RouterType } from "express";
-import { Router } from "express";
+import { serializeTimestamps } from "@common/utils/json.replacer.js";
+import { defaultHook, jsonError } from "@common/utils/problem.js";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 
-const router: RouterType = Router();
+const app = new OpenAPIHono<BankEnv>({ defaultHook: defaultHook() });
 
-router.get("/transactions", requireBankAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { accountId } = (req as BankAuthenticatedRequest).bankUser;
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/transactions",
+    summary: "List the current account's transactions",
+    tags: ["Transaction"],
+    security: [{ bearer: [] }],
+    middleware: [requireBankAuth],
+    responses: {
+      200: { content: { "application/json": { schema: z.any() } }, description: "Transactions" },
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { accountId } = c.get("bankUser");
     const transactions = await getTransactionsByAccount(accountId);
+    return c.json(serializeTimestamps(transactions), 200);
+  },
+);
 
-    res.json(transactions);
-  } catch (error) {
-    handleRouteError(error, res, "GET /transactions");
-  }
-});
-
-export default router;
+export default app;

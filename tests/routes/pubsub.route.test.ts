@@ -1,4 +1,3 @@
-import type express from "express";
 import { restAssert } from "../utils/helpers";
 import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.index";
 
@@ -10,10 +9,14 @@ vi.mock("../../src/token/config/bank", () => ({
 
 // Mock xrpl.service to avoid real XRPL connections
 vi.mock("../../src/token/services/xrpl.service", () => ({
-  sendToken: vi.fn().mockResolvedValue("mock-tx-hash"),
-  sendTokenFromUser: vi.fn().mockResolvedValue("mock-tx-hash"),
+  mint: vi.fn().mockResolvedValue("mock-tx-hash"),
+  transfer: vi.fn().mockResolvedValue("mock-tx-hash"),
+  burn: vi.fn().mockResolvedValue("mock-tx-hash"),
+  authorize: vi.fn().mockResolvedValue("mock-tx-hash"),
+  issuerAuthorize: vi.fn().mockResolvedValue("mock-tx-hash"),
+  hasMptAuthorization: vi.fn().mockResolvedValue(false),
   sendXrpFromUser: vi.fn().mockResolvedValue("mock-tx-hash"),
-  getBalances: vi.fn().mockResolvedValue([]),
+  getMptBalances: vi.fn().mockResolvedValue([]),
   getClient: vi.fn().mockResolvedValue({}),
   disconnect: vi.fn().mockResolvedValue(undefined),
 }));
@@ -22,19 +25,11 @@ vi.mock("../../src/token/services/xrpl.service", () => ({
 vi.mock("../../src/token/services/wallet.service", () => ({
   deriveWallet: vi.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
   getWalletForSigning: vi.fn().mockResolvedValue({ sign: vi.fn() }),
-  allocateXrpAddressIndex: vi.fn().mockResolvedValue(1),
 }));
 
 // Mock faucet.service to avoid real XRPL faucet calls
 vi.mock("../../src/token/services/faucet.service", () => ({
   fundAccount: vi.fn().mockResolvedValue({ balance: 1000 }),
-}));
-
-// Mock trustline.service to avoid real XRPL trustline calls
-vi.mock("../../src/token/services/trustline.service", () => ({
-  hasTrustLine: vi.fn().mockResolvedValue(false),
-  setTrustLine: vi.fn().mockResolvedValue("mock-trustline-tx-hash"),
-  ensureTrustLine: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
@@ -51,7 +46,7 @@ function createPubSubEnvelope(data: Record<string, unknown>, messageId = "test-m
 }
 
 describe("Pub/Sub Routes - REST API Integration", () => {
-  let app: express.Application;
+  let app: Awaited<ReturnType<typeof createCompleteTestApp>>;
   let helper: RestTestHelper;
 
   beforeAll(async () => {

@@ -1,3 +1,4 @@
+import { assertSafeAmount } from "@common/utils/amount.js";
 import { ValidationError } from "@common/utils/error.handler.js";
 import jsQR from "jsqr";
 import { PNG } from "pngjs";
@@ -47,7 +48,7 @@ export async function parseInvoicePdf(buffer: Buffer): Promise<ParsedInvoiceData
 
   return {
     tokenId: data.tokenId as string,
-    amount: Number(data.amount),
+    amount: assertSafeAmount(Number(data.amount), "invoice amount"),
     recipientAddress: data.recipientAddress as string,
     recipientName: data.recipientName as string,
     description: data.description as string,

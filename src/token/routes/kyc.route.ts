@@ -1,28 +1,48 @@
-import { handleRouteError } from "@common/utils/error.handler.js";
-import { type AuthenticatedRequest, requireAuth } from "@token/middleware/auth.js";
+import { serializeTimestamps } from "@common/utils/json.replacer.js";
+import { defaultHook, jsonError } from "@common/utils/problem.js";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { KycInfoSchema } from "@token/config/response-schemas.js";
+import { type AuthEnv, requireAuth } from "@token/middleware/auth.js";
 import { submitKyc } from "@token/services/kyc.service.js";
-import type { Response, Router as RouterType } from "express";
-import { Router } from "express";
 
-const router: RouterType = Router();
+const app = new OpenAPIHono<AuthEnv>({ defaultHook: defaultHook() });
 
-router.post("/users/me/kyc", requireAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const { fullName, phoneNumber, postalCode, prefecture, city, town, address } = req.body as {
-      fullName: string;
-      phoneNumber: string;
-      postalCode: string;
-      prefecture: string;
-      city: string;
-      town: string;
-      address: string;
-    };
-    const kyc = await submitKyc(uid, { fullName, phoneNumber, postalCode, prefecture, city, town, address });
-    res.status(201).json(kyc);
-  } catch (error) {
-    handleRouteError(error, res, "POST /users/me/kyc");
-  }
-});
+const KycInputSchema = z
+  .object({
+    fullName: z.string().min(1),
+    phoneNumber: z.string().regex(/^0\d{9,10}$/, "phoneNumber must be a Japanese phone number"),
+    postalCode: z.string().regex(/^\d{7}$/, "postalCode must be 7 digits"),
+    prefecture: z.string().min(1),
+    city: z.string().min(1),
+    // town (zipcloud address3) can be empty
+    town: z.string(),
+    address: z.string().min(1),
+  })
+  .meta({ id: "KycInput" });
 
-export default router;
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/users/me/kyc",
+    summary: "Submit KYC information",
+    tags: ["KYC"],
+    security: [{ session: [] }],
+    middleware: [requireAuth],
+    request: {
+      body: { content: { "application/json": { schema: KycInputSchema } }, required: true },
+    },
+    responses: {
+      201: { content: { "application/json": { schema: KycInfoSchema } }, description: "KYC submitted" },
+      400: jsonError("Validation error"),
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const input = c.req.valid("json");
+    const kyc = await submitKyc(uid, input);
+    return c.json(serializeTimestamps(kyc), 201);
+  },
+);
+
+export default app;

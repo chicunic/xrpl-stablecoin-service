@@ -1,6 +1,9 @@
-import { handleRouteError } from "@common/utils/error.handler.js";
+import { serializeTimestamps } from "@common/utils/json.replacer.js";
+import { defaultHook, jsonError } from "@common/utils/problem.js";
+import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
+import { CredentialAcceptResponseSchema, CredentialStatusSchema } from "@token/config/response-schemas.js";
 import { getTokenConfig } from "@token/config/tokens.js";
-import { type AuthenticatedRequest, requireAuth, requireKyc } from "@token/middleware/auth.js";
+import { type AuthEnv, requireAuth, requireKyc } from "@token/middleware/auth.js";
 import { getUserWallet } from "@token/services/auth.service.js";
 import {
   CREDENTIAL_TYPE_KYC_JAPAN_HEX,
@@ -8,35 +11,61 @@ import {
   getCredentialStatus,
   issueCredential,
 } from "@token/services/credential.service.js";
-import type { Response, Router as RouterType } from "express";
-import { Router } from "express";
+import { HTTPException } from "hono/http-exception";
 
-const router: RouterType = Router();
+const app = new OpenAPIHono<AuthEnv>({ defaultHook: defaultHook() });
 
-router.get("/users/me/credential", requireAuth, requireKyc, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
+const auth = { security: [{ session: [] }], middleware: [requireAuth, requireKyc] };
+
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/users/me/credential",
+    summary: "Get the current user's KYC credential status",
+    tags: ["Credential"],
+    ...auth,
+    responses: {
+      200: { content: { "application/json": { schema: CredentialStatusSchema } }, description: "Credential status" },
+      401: jsonError("Unauthorized"),
+      403: jsonError("KYC required"),
+      404: jsonError("Wallet not found"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
     const wallet = await getUserWallet(uid);
     if (!wallet) {
-      res.status(404).json({ error: "Wallet not found" });
-      return;
+      throw new HTTPException(404, { message: "Wallet not found" });
     }
 
     const { issuerAddress } = getTokenConfig("JPYN");
     const status = await getCredentialStatus(wallet.address, issuerAddress, CREDENTIAL_TYPE_KYC_JAPAN_HEX);
-    res.json(status);
-  } catch (error) {
-    handleRouteError(error, res, "GET /users/me/credential");
-  }
-});
+    return c.json(serializeTimestamps(status), 200);
+  },
+);
 
-router.post("/users/me/credential/retry", requireAuth, requireKyc, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/users/me/credential/retry",
+    summary: "Retry issuing and accepting the current user's KYC credential",
+    tags: ["Credential"],
+    ...auth,
+    responses: {
+      200: {
+        content: { "application/json": { schema: CredentialAcceptResponseSchema } },
+        description: "Credential accepted",
+      },
+      401: jsonError("Unauthorized"),
+      403: jsonError("KYC required"),
+      404: jsonError("Wallet not found"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
     const wallet = await getUserWallet(uid);
     if (!wallet) {
-      res.status(404).json({ error: "Wallet not found" });
-      return;
+      throw new HTTPException(404, { message: "Wallet not found" });
     }
 
     const { issuerAddress } = getTokenConfig("JPYN");
@@ -48,10 +77,8 @@ router.post("/users/me/credential/retry", requireAuth, requireKyc, async (req, r
       CREDENTIAL_TYPE_KYC_JAPAN_HEX,
     );
 
-    res.json({ credentialTxHash, credentialAcceptTxHash, credentialStatus: "accepted" });
-  } catch (error) {
-    handleRouteError(error, res, "POST /users/me/credential/retry");
-  }
-});
+    return c.json({ credentialTxHash, credentialAcceptTxHash, credentialStatus: "accepted" as const }, 200);
+  },
+);
 
-export default router;
+export default app;

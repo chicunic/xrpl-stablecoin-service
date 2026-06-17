@@ -1,10 +1,8 @@
-import type { Request, Response } from "express";
-import type express from "express";
 import { ValidationError } from "../../../src/common/utils/error.handler";
 import { restAssert } from "../../utils/helpers";
 import { mockFirestoreService } from "../../utils/mock.index";
 import { TEST_BANK_PIN } from "../utils/data";
-import { mockBankAuth } from "../utils/mock.bank-auth";
+import { bankAuthReject401, mockBankAuth } from "../utils/mock.bank-auth";
 import { mockAccountService, mockTransferService } from "../utils/mock.bank-services";
 import { BankRestTestHelper, createBankTestApp } from "../utils/server.rest";
 
@@ -35,7 +33,7 @@ vi.mock("@bank/services/transfer.service.js", async () => {
 });
 
 describe("Bank ATM Routes - REST API Integration", () => {
-  let app: express.Application;
+  let app: Awaited<ReturnType<typeof createBankTestApp>>;
   let helper: BankRestTestHelper;
 
   beforeAll(async () => {
@@ -70,9 +68,7 @@ describe("Bank ATM Routes - REST API Integration", () => {
     });
 
     it("should return 401 without auth", async () => {
-      mockBankAuth.requireBankAuth.mockImplementation((_req: Request, res: Response) => {
-        res.status(401).json({ error: "Missing or invalid Authorization header" });
-      });
+      mockBankAuth.requireBankAuth.mockImplementation(bankAuthReject401());
 
       const response = await helper.post("/api/v1/atm/deposit", { amount: 10000, pin: TEST_BANK_PIN });
 

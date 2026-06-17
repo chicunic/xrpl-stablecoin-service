@@ -44,7 +44,10 @@ export const MOCK_VIRTUAL_ACCOUNT_DOC = {
 export const MOCK_TOKEN_DOC = {
   tokenId: TEST_TOKEN_ID,
   name: "JPYN Stablecoin",
-  currency: "JPYN",
+  mptIssuanceId: "00000000ABCDEF1234567890ABCDEF1234567890ABCD",
+  assetScale: 0,
+  maximumAmount: "100000000",
+  transferFee: 0,
   domain: "example.com",
   issuerAddress: "rIssuerAddress123",
   kmsKeyPath: "projects/test/locations/test/keyRings/test/cryptoKeys/test/cryptoKeyVersions/1",
@@ -53,8 +56,7 @@ export const MOCK_TOKEN_DOC = {
 };
 
 export const MOCK_TOKEN_BALANCE_DOC = {
-  currency: "JPYN",
-  issuer: "rIssuerAddress123",
+  mptIssuanceId: "00000000ABCDEF1234567890ABCDEF1234567890ABCD",
   balance: 50000,
   updatedAt: "mock-timestamp",
 };

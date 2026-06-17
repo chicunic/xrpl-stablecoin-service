@@ -1,10 +1,11 @@
-import { defineConfig } from "eslint/config";
+import { defineConfig, globalIgnores } from "eslint/config";
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import eslintConfigPrettier from "eslint-config-prettier";
 import vitest from "@vitest/eslint-plugin";
 
 export default defineConfig([
+  globalIgnores(["dist/**", "coverage/**"]),
   {
     files: ["src/**/*.ts"],
     extends: [

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { isSafeAmount } from "@common/utils/amount.js";
 import { getFirestore } from "@common/config/firebase.js";
-import { getAllTokenConfigs, toXrplCurrency } from "@token/config/tokens.js";
+import { getAllTokenConfigs } from "@token/config/tokens.js";
 import { getUserByVirtualAccountNumber, getUserByWalletAddress } from "@token/services/auth.service.js";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -62,16 +63,21 @@ export async function processBankDeposit(
   console.log(`Fiat deposit credited: userId=${user.uid}, amount=${String(amount)}, txId=${bankTransactionId}`);
 }
 
+interface MptAmount {
+  mpt_issuance_id: string;
+  value: string;
+}
+
 interface TokenTransactionData {
   transactionType: string;
   tx_json: {
     Account: string;
     Destination: string;
-    Amount: { currency: string; value: string; issuer: string } | string;
+    Amount: MptAmount | string;
   };
   meta: {
     TransactionResult: string;
-    delivered_amount?: { currency: string; value: string; issuer: string } | string;
+    delivered_amount?: MptAmount | string;
   };
 }
 
@@ -83,8 +89,7 @@ export async function processXrplTokenTransaction(
     return { processed: false, reason: "transaction not successful" };
   }
 
-  // Only process mint (issuer -> user) and transfer (user -> user)
-  // burn (user -> issuer) doesn't credit anyone
+  // Only mint (issuer -> user) and transfer (user -> user) credit someone; burn (user -> issuer) credits no one.
   if (data.transactionType === "burn") {
     return { processed: false, reason: "burn transaction" };
   }
@@ -96,13 +101,13 @@ export async function processXrplTokenTransaction(
     return { processed: false, reason: "no token amount (XRP native)" };
   }
 
-  // Find the token config matching this currency + issuer
+  // Guard empty ids: an unconfigured JPYN_MPT_ISSUANCE_ID ("") must not falsely match a delivered_amount with an empty/missing id.
+  const deliveredId = deliveredAmount.mpt_issuance_id;
+  if (!deliveredId) {
+    return { processed: false, reason: "missing mpt_issuance_id" };
+  }
   const tokenConfigs = getAllTokenConfigs();
-  const tokenConfig = tokenConfigs.find(
-    (t) =>
-      (t.currency === deliveredAmount.currency || toXrplCurrency(t.currency) === deliveredAmount.currency) &&
-      t.issuerAddress === deliveredAmount.issuer,
-  );
+  const tokenConfig = tokenConfigs.find((t) => t.mptIssuanceId !== "" && t.mptIssuanceId === deliveredId);
   if (!tokenConfig) {
     return { processed: false, reason: "unknown token" };
   }
@@ -113,8 +118,9 @@ export async function processXrplTokenTransaction(
     return { processed: false, reason: "destination is not a custodial wallet" };
   }
 
+  // string -> number boundary: reject the integer-string MPToken value if it would lose precision as a JS number (> 2^53-1), NaN, or <= 0.
   const amount = Number(deliveredAmount.value);
-  if (Number.isNaN(amount) || amount <= 0) {
+  if (!isSafeAmount(amount)) {
     return { processed: false, reason: "invalid amount" };
   }
 
@@ -135,7 +141,7 @@ export async function processXrplTokenTransaction(
       tokenId: tokenConfig.tokenId,
       type: "deposit",
       amount,
-      description: `${tokenConfig.currency} 入金`,
+      description: `${tokenConfig.name} 入金`,
       relatedOrderId: txHash,
       txHash,
       createdAt: FieldValue.serverTimestamp(),

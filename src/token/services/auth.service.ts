@@ -1,8 +1,9 @@
 import { getFirestore } from "@common/config/firebase.js";
 import { ConflictError } from "@common/utils/error.handler.js";
+import { incrementCounter } from "@common/utils/firestore.js";
 import { getBankAuthToken, getBankServiceUrl } from "@token/config/bank.js";
 import { fundAccount } from "@token/services/faucet.service.js";
-import { allocateXrpAddressIndex, deriveWallet } from "@token/services/wallet.service.js";
+import { deriveWallet } from "@token/services/wallet.service.js";
 import type { BankAccount, User, UserResponse, Wallet } from "@token/types/user.type.js";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -79,7 +80,7 @@ export async function setupWallet(uid: string): Promise<Wallet> {
     throw new ConflictError("Wallet already set up");
   }
 
-  const bipIndex = await allocateXrpAddressIndex();
+  const bipIndex = await incrementCounter("token_counters", "bipIndex");
   const { address } = deriveWallet(bipIndex);
 
   try {

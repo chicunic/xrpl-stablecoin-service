@@ -1,18 +1,18 @@
 import { randomUUID } from "node:crypto";
 import { getFirestore } from "@common/config/firebase.js";
-import type { Trustline } from "@token/types/user.type.js";
-import type { XrpTransaction, XrpTransactionType } from "@token/types/xrp-transaction.type.js";
+import type { MptAuthorization } from "@token/types/user.type.js";
+import type { MptTransaction, MptTransactionType } from "@token/types/mpt-transaction.type.js";
 import { FieldValue } from "firebase-admin/firestore";
 
 const USERS_COLLECTION = "token_users";
 
-function trustlineDocId(currency: string, issuer: string): string {
-  return `${currency}:${issuer}`;
+function mptDocId(mptIssuanceId: string): string {
+  return mptIssuanceId;
 }
 
-export async function createTrustlineDoc(userId: string, currency: string, issuer: string): Promise<void> {
+export async function createAuthorizationDoc(userId: string, mptIssuanceId: string): Promise<void> {
   const db = getFirestore();
-  const docId = trustlineDocId(currency, issuer);
+  const docId = mptDocId(mptIssuanceId);
   const ref = db.collection(USERS_COLLECTION).doc(userId).collection("tokenBalances").doc(docId);
 
   const existing = await ref.get();
@@ -21,16 +21,15 @@ export async function createTrustlineDoc(userId: string, currency: string, issue
   }
 
   await ref.set({
-    currency,
-    issuer,
+    mptIssuanceId,
     createdAt: FieldValue.serverTimestamp(),
   });
 }
 
-export async function recordXrpTransaction(
+export async function recordMptTransaction(
   userId: string,
   tokenId: string,
-  type: XrpTransactionType,
+  type: MptTransactionType,
   amount: number,
   description: string,
   txHash: string,
@@ -52,7 +51,7 @@ export async function recordXrpTransaction(
   });
 }
 
-export async function getXrpTransactions(userId: string): Promise<XrpTransaction[]> {
+export async function getMptTransactions(userId: string): Promise<MptTransaction[]> {
   const db = getFirestore();
   const snapshot = await db
     .collection(USERS_COLLECTION)
@@ -61,12 +60,12 @@ export async function getXrpTransactions(userId: string): Promise<XrpTransaction
     .orderBy("createdAt", "desc")
     .get();
 
-  return snapshot.docs.map((doc) => doc.data() as XrpTransaction);
+  return snapshot.docs.map((doc) => doc.data() as MptTransaction);
 }
 
-export async function getTrustlines(userId: string): Promise<Trustline[]> {
+export async function getAuthorizations(userId: string): Promise<MptAuthorization[]> {
   const db = getFirestore();
   const snapshot = await db.collection(USERS_COLLECTION).doc(userId).collection("tokenBalances").get();
 
-  return snapshot.docs.map((doc) => doc.data() as Trustline);
+  return snapshot.docs.map((doc) => doc.data() as MptAuthorization);
 }

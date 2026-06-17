@@ -1,23 +1,38 @@
 export const mockXrplService = {
-  sendToken: vi.fn(),
-  sendTokenFromUser: vi.fn(),
+  mint: vi.fn(),
+  transfer: vi.fn(),
+  burn: vi.fn(),
+  authorize: vi.fn(),
+  issuerAuthorize: vi.fn(),
+  hasMptAuthorization: vi.fn(),
+  getMptBalance: vi.fn(),
+  getMptBalances: vi.fn(),
   sendXrpFromUser: vi.fn(),
-  getBalances: vi.fn(),
   getClient: vi.fn(),
   disconnect: vi.fn(),
   setup: () => {
-    mockXrplService.sendToken.mockResolvedValue("mock-tx-hash-123");
-    mockXrplService.sendTokenFromUser.mockResolvedValue("mock-tx-hash-123");
+    mockXrplService.mint.mockResolvedValue("mock-tx-hash-123");
+    mockXrplService.transfer.mockResolvedValue("mock-tx-hash-123");
+    mockXrplService.burn.mockResolvedValue("mock-tx-hash-123");
+    mockXrplService.authorize.mockResolvedValue("mock-tx-hash-123");
+    mockXrplService.issuerAuthorize.mockResolvedValue("mock-tx-hash-123");
+    mockXrplService.hasMptAuthorization.mockResolvedValue(false);
+    mockXrplService.getMptBalance.mockResolvedValue("0");
+    mockXrplService.getMptBalances.mockResolvedValue([]);
     mockXrplService.sendXrpFromUser.mockResolvedValue("mock-tx-hash-123");
-    mockXrplService.getBalances.mockResolvedValue([]);
     mockXrplService.getClient.mockResolvedValue({});
     mockXrplService.disconnect.mockResolvedValue(undefined);
   },
   reset: () => {
-    mockXrplService.sendToken.mockReset();
-    mockXrplService.sendTokenFromUser.mockReset();
+    mockXrplService.mint.mockReset();
+    mockXrplService.transfer.mockReset();
+    mockXrplService.burn.mockReset();
+    mockXrplService.authorize.mockReset();
+    mockXrplService.issuerAuthorize.mockReset();
+    mockXrplService.hasMptAuthorization.mockReset();
+    mockXrplService.getMptBalance.mockReset();
+    mockXrplService.getMptBalances.mockReset();
     mockXrplService.sendXrpFromUser.mockReset();
-    mockXrplService.getBalances.mockReset();
     mockXrplService.getClient.mockReset();
     mockXrplService.disconnect.mockReset();
   },
@@ -39,18 +54,15 @@ export const mockKmsService = {
 export const mockWalletService = {
   deriveWallet: vi.fn(),
   getWalletForSigning: vi.fn(),
-  allocateXrpAddressIndex: vi.fn(),
   setup: () => {
     mockWalletService.deriveWallet.mockReturnValue({ address: "rMockAddress123", publicKey: "mock-pub-key" });
     mockWalletService.getWalletForSigning.mockReturnValue({
       sign: vi.fn().mockReturnValue({ tx_blob: "mock-blob", hash: "mock-hash" }),
     });
-    mockWalletService.allocateXrpAddressIndex.mockResolvedValue(1);
   },
   reset: () => {
     mockWalletService.deriveWallet.mockReset();
     mockWalletService.getWalletForSigning.mockReset();
-    mockWalletService.allocateXrpAddressIndex.mockReset();
   },
 };
 
@@ -61,21 +73,5 @@ export const mockFaucetService = {
   },
   reset: () => {
     mockFaucetService.fundAccount.mockReset();
-  },
-};
-
-export const mockTrustlineService = {
-  hasTrustLine: vi.fn(),
-  setTrustLine: vi.fn(),
-  ensureTrustLine: vi.fn(),
-  setup: () => {
-    mockTrustlineService.hasTrustLine.mockResolvedValue(false);
-    mockTrustlineService.setTrustLine.mockResolvedValue("mock-trustline-tx-hash");
-    mockTrustlineService.ensureTrustLine.mockResolvedValue(undefined);
-  },
-  reset: () => {
-    mockTrustlineService.hasTrustLine.mockReset();
-    mockTrustlineService.setTrustLine.mockReset();
-    mockTrustlineService.ensureTrustLine.mockReset();
   },
 };

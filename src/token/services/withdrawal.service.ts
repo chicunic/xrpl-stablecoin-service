@@ -4,14 +4,14 @@ import { getBankAuthToken, getBankServiceUrl } from "@token/config/bank.js";
 import { getTokenConfig } from "@token/config/tokens.js";
 import { getUserWallet } from "@token/services/auth.service.js";
 import { creditFiat, debitFiat } from "@token/services/fiat.service.js";
-import { recordXrpTransaction } from "@token/services/token-balance.service.js";
+import { recordMptTransaction } from "@token/services/token-balance.service.js";
 import {
   getBankWhitelist,
-  getXrpWhitelist,
+  getXrplWhitelist,
   isBankWhitelisted,
-  isXrpWhitelisted,
+  isXrplWhitelisted,
 } from "@token/services/whitelist.service.js";
-import { sendTokenFromUser } from "@token/services/xrpl.service.js";
+import { transfer } from "@token/services/xrpl.service.js";
 import type { BankAccount } from "@token/types/user.type.js";
 
 interface FiatWithdrawalResult {
@@ -20,7 +20,7 @@ interface FiatWithdrawalResult {
   txReference: string;
 }
 
-interface XrpWithdrawalResult {
+interface MptWithdrawalResult {
   tokenId: string;
   amount: number;
   destinationAddress: string;
@@ -30,7 +30,7 @@ interface XrpWithdrawalResult {
 export async function withdrawFiat(
   userId: string,
   amount: number,
-  bankAccount: BankAccount,
+  bankAccount: Omit<BankAccount, "createdAt">,
 ): Promise<FiatWithdrawalResult> {
   const whitelist = await getBankWhitelist(userId);
   if (!isBankWhitelisted(whitelist, bankAccount.branchCode, bankAccount.accountNumber)) {
@@ -62,45 +62,35 @@ export async function withdrawFiat(
   };
 }
 
-export async function withdrawXrp(
+export async function withdrawMpt(
   userId: string,
   tokenId: string,
   tokenAmount: number,
   destinationAddress: string,
-): Promise<XrpWithdrawalResult> {
+): Promise<MptWithdrawalResult> {
   const wallet = await getUserWallet(userId);
   if (!wallet) {
     throw new NotFoundError("Wallet not set up");
   }
 
-  const whitelist = await getXrpWhitelist(userId);
-  if (!isXrpWhitelisted(whitelist, destinationAddress)) {
+  const whitelist = await getXrplWhitelist(userId);
+  if (!isXrplWhitelisted(whitelist, destinationAddress)) {
     throw new ValidationError("Invalid: destination address is not in whitelist");
   }
 
   const tokenConfig = getTokenConfig(tokenId);
 
-  const txHash = await sendTokenFromUser(
+  const txHash = await transfer(
     wallet.bipIndex,
     wallet.address,
     destinationAddress,
-    tokenConfig.currency,
+    tokenConfig.mptIssuanceId,
     tokenAmount.toString(),
-    tokenConfig.issuerAddress,
   );
 
-  // XRPL transaction is irreversible once submitted.
-  // Record must not be lost even if Firestore write fails.
+  // XRPL tx is irreversible once submitted, so the record must not be lost even if the Firestore write fails.
   try {
-    await recordXrpTransaction(
-      userId,
-      tokenId,
-      "withdrawal",
-      tokenAmount,
-      `${tokenConfig.currency} 出金`,
-      txHash,
-      txHash,
-    );
+    await recordMptTransaction(userId, tokenId, "withdrawal", tokenAmount, `${tokenConfig.name} 出金`, txHash, txHash);
   } catch (recordError) {
     console.error(
       `CRITICAL: XRPL withdrawal succeeded (txHash=${txHash}) but record failed for user ${userId}:`,
@@ -108,7 +98,7 @@ export async function withdrawXrp(
     );
     // Retry once
     try {
-      await recordXrpTransaction(userId, tokenId, "withdrawal", tokenAmount, `${tokenConfig.currency} 出金`, txHash);
+      await recordMptTransaction(userId, tokenId, "withdrawal", tokenAmount, `${tokenConfig.name} 出金`, txHash);
     } catch (retryError) {
       console.error(
         `CRITICAL: Retry also failed for txHash=${txHash}, user=${userId}. Manual reconciliation required.`,
@@ -120,7 +110,11 @@ export async function withdrawXrp(
   return { tokenId, amount: tokenAmount, destinationAddress, xrplTxHash: txHash };
 }
 
-async function initiateBankTransfer(bankAccount: BankAccount, amount: number, idempotencyKey: string): Promise<string> {
+async function initiateBankTransfer(
+  bankAccount: Omit<BankAccount, "createdAt">,
+  amount: number,
+  idempotencyKey: string,
+): Promise<string> {
   const bankServiceUrl = getBankServiceUrl();
   const bankAuthToken = getBankAuthToken();
   const url = `${bankServiceUrl}/api/v1/transfers`;

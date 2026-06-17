@@ -1,4 +1,3 @@
-import type express from "express";
 import { MOCK_WALLET_DOC } from "../utils/data";
 import { restAssert } from "../utils/helpers";
 import { mockFirestoreService, mockIdentityPlatformAuth } from "../utils/mock.index";
@@ -19,19 +18,11 @@ vi.mock("../../src/token/services/credential.service", () => ({
 vi.mock("../../src/token/services/wallet.service", () => ({
   deriveWallet: vi.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
   getWalletForSigning: vi.fn().mockResolvedValue({ sign: vi.fn() }),
-  allocateXrpAddressIndex: vi.fn().mockResolvedValue(1),
 }));
 
 // Mock faucet.service
 vi.mock("../../src/token/services/faucet.service", () => ({
   fundAccount: vi.fn().mockResolvedValue({ balance: 1000 }),
-}));
-
-// Mock trustline.service
-vi.mock("../../src/token/services/trustline.service", () => ({
-  hasTrustLine: vi.fn().mockResolvedValue(false),
-  setTrustLine: vi.fn().mockResolvedValue("mock-trustline-tx-hash"),
-  ensureTrustLine: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock dex.service
@@ -50,7 +41,7 @@ vi.mock("../../src/token/config/bank", () => ({
 }));
 
 describe("Credential Routes - REST API Integration", () => {
-  let app: express.Application;
+  let app: Awaited<ReturnType<typeof createCompleteTestApp>>;
   let helper: RestTestHelper;
 
   beforeAll(async () => {

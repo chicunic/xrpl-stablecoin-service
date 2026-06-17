@@ -1,4 +1,3 @@
-import { getFirestore } from "@common/config/firebase.js";
 import { Wallet } from "xrpl";
 
 function getMnemonic(): string {
@@ -25,17 +24,4 @@ export function deriveWallet(index: number): { address: string; publicKey: strin
 
 export function getWalletForSigning(index: number): Wallet {
   return deriveFullWallet(index);
-}
-
-export async function allocateXrpAddressIndex(): Promise<number> {
-  const db = getFirestore();
-  const counterRef = db.collection("token_counters").doc("bipIndex");
-
-  return db.runTransaction(async (tx) => {
-    const counterDoc = await tx.get(counterRef);
-    const current = counterDoc.exists ? (counterDoc.data()?.value as number) : 0;
-    const next = current + 1;
-    tx.set(counterRef, { value: next });
-    return next;
-  });
 }

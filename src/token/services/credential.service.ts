@@ -1,18 +1,12 @@
+import type { AcceptedCredential } from "@token/config/tokens.js";
 import { getTokenConfig } from "@token/config/tokens.js";
 import { signWithKms } from "@token/services/signing.service.js";
 import { getWalletForSigning } from "@token/services/wallet.service.js";
-import { getClient } from "@token/services/xrpl.service.js";
-import { type SubmitResponse, convertStringToHex, encodeForSigning } from "xrpl";
+import { extractTxHash, getClient } from "@token/services/xrpl.service.js";
+import { type TxResponse, convertStringToHex, encodeForSigning } from "xrpl";
 
 export const CREDENTIAL_TYPE_KYC_JAPAN = "KYC_JAPAN";
 export const CREDENTIAL_TYPE_KYC_JAPAN_HEX = convertStringToHex("KYC_JAPAN");
-
-function extractTxHash(result: SubmitResponse): string {
-  if (result.result.engine_result !== "tesSUCCESS") {
-    throw new Error(`XRPL transaction failed: ${result.result.engine_result_message}`);
-  }
-  return result.result.tx_json.hash ?? "";
-}
 
 export async function issueCredential(userAddress: string, credentialType: string): Promise<string> {
   const xrplClient = await getClient();
@@ -30,7 +24,7 @@ export async function issueCredential(userAddress: string, credentialType: strin
   const encodedTx = encodeForSigning(prepared);
   const signature = await signWithKms(Buffer.from(encodedTx, "hex"), kmsKeyPath);
 
-  const result: SubmitResponse = await xrplClient.submit({
+  const result: TxResponse = await xrplClient.submitAndWait({
     ...prepared,
     TxnSignature: signature,
   });
@@ -56,7 +50,7 @@ export async function acceptCredential(
 
   const prepared = await xrplClient.autofill(tx);
   const signed = wallet.sign(prepared);
-  const result: SubmitResponse = await xrplClient.submit(signed.tx_blob);
+  const result: TxResponse = await xrplClient.submitAndWait(signed.tx_blob);
 
   return extractTxHash(result);
 }
@@ -77,7 +71,7 @@ export async function revokeCredential(userAddress: string, credentialType: stri
   const encodedTx = encodeForSigning(prepared);
   const signature = await signWithKms(Buffer.from(encodedTx, "hex"), kmsKeyPath);
 
-  const result: SubmitResponse = await xrplClient.submit({
+  const result: TxResponse = await xrplClient.submitAndWait({
     ...prepared,
     TxnSignature: signature,
   });
@@ -121,4 +115,34 @@ export async function getCredentialStatus(
     }
     throw error;
   }
+}
+
+// Ripple epoch (2000-01-01) offset in unix seconds; XRPL Expiration is in this epoch.
+const RIPPLE_EPOCH_OFFSET = 946684800;
+
+function isExpired(expiration: number | undefined, nowUnixSeconds: number): boolean {
+  if (expiration === undefined) return false;
+  return expiration + RIPPLE_EPOCH_OFFSET <= nowUnixSeconds;
+}
+
+/**
+ * Whether the holder satisfies at least one of the token's accepted credentials,
+ * i.e. holds an accepted (and non-expired) credential of a matching issuer + type.
+ *
+ * This is the application-layer KYC gate: until the MPToken DomainID path is available
+ * on-chain (requires SingleAssetVault), credential enforcement happens here, before the
+ * issuer authorizes a holder.
+ */
+export async function holderHasAcceptedCredential(
+  holderAddress: string,
+  acceptedCredentials: AcceptedCredential[],
+): Promise<boolean> {
+  const nowUnixSeconds = Math.floor(Date.now() / 1000);
+  for (const { issuer, credentialType } of acceptedCredentials) {
+    const status = await getCredentialStatus(holderAddress, issuer, credentialType);
+    if (status.exists && status.accepted && !isExpired(status.expiration, nowUnixSeconds)) {
+      return true;
+    }
+  }
+  return false;
 }

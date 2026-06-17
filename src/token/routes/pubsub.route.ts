@@ -1,9 +1,10 @@
 import { parsePubSubMessage } from "@common/utils/pubsub.helper.js";
+import { defaultHook } from "@common/utils/problem.js";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { AckSchema } from "@token/config/response-schemas.js";
 import { processBankDeposit } from "@token/services/deposit.service.js";
-import type { Request, Response, Router as RouterType } from "express";
-import { Router } from "express";
 
-const router: RouterType = Router();
+const app = new OpenAPIHono({ defaultHook: defaultHook() });
 
 interface BankDepositEvent {
   transactionId: string;
@@ -11,31 +12,54 @@ interface BankDepositEvent {
   virtualAccountNumber: string;
 }
 
-router.post("/pubsub/bank/deposit", async (req: Request, res: Response<unknown>) => {
-  let messageId: string | undefined;
-  try {
-    const parsed = parsePubSubMessage(req.body);
-    const data = parsed.data as BankDepositEvent;
-    messageId = parsed.messageId;
+const PubSubEnvelopeSchema = z
+  .object({
+    message: z.object({
+      data: z.string(),
+      messageId: z.string(),
+    }),
+  })
+  .meta({ id: "PubSubEnvelope" });
 
-    const { transactionId, amount, virtualAccountNumber } = data;
-    if (!transactionId || !amount || !virtualAccountNumber) {
-      console.error("Invalid bank deposit event data:", data);
-      res.status(200).json({ status: "skipped", reason: "invalid data" });
-      return;
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/pubsub/bank/deposit",
+    summary: "Handle a bank deposit Pub/Sub push message",
+    tags: ["Pub/Sub"],
+    request: {
+      body: { content: { "application/json": { schema: PubSubEnvelopeSchema } }, required: true },
+    },
+    responses: {
+      200: { content: { "application/json": { schema: AckSchema } }, description: "Acknowledged" },
+      500: { content: { "application/json": { schema: AckSchema } }, description: "Processing failed" },
+    },
+  }),
+  async (c) => {
+    const body = c.req.valid("json");
+    let messageId: string | undefined;
+    try {
+      const parsed = parsePubSubMessage(body);
+      const data = parsed.data as BankDepositEvent;
+      messageId = parsed.messageId;
+
+      const { transactionId, amount, virtualAccountNumber } = data;
+      if (!transactionId || !amount || !virtualAccountNumber) {
+        console.error("Invalid bank deposit event data:", data);
+        return c.json({ status: "skipped" as const, reason: "invalid data" }, 200);
+      }
+
+      await processBankDeposit(messageId, transactionId, amount, virtualAccountNumber);
+      return c.json({ status: "ok" as const }, 200);
+    } catch (error) {
+      if ((error as { statusCode?: number }).statusCode === 400) {
+        console.error("Pub/Sub bank deposit validation error:", error);
+        return c.json({ status: "skipped" as const, reason: "validation error" }, 200);
+      }
+      console.error(`Pub/Sub bank deposit processing error (messageId: ${messageId ?? ""}):`, error);
+      return c.json({ error: "Processing failed" }, 500);
     }
+  },
+);
 
-    await processBankDeposit(messageId, transactionId, amount, virtualAccountNumber);
-    res.status(200).json({ status: "ok" });
-  } catch (error) {
-    if ((error as { statusCode?: number }).statusCode === 400) {
-      console.error("Pub/Sub bank deposit validation error:", error);
-      res.status(200).json({ status: "skipped", reason: "validation error" });
-      return;
-    }
-    console.error(`Pub/Sub bank deposit processing error (messageId: ${messageId ?? ""}):`, error);
-    res.status(500).json({ error: "Processing failed" });
-  }
-});
-
-export default router;
+export default app;

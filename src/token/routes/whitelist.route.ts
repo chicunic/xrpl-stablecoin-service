@@ -1,122 +1,182 @@
-import { handleRouteError } from "@common/utils/error.handler.js";
-import {
-  type AuthenticatedRequest,
-  requireAuth,
-  requireKyc,
-  requireMfa,
-  requireOperationMfa,
-} from "@token/middleware/auth.js";
+import { serializeTimestamps } from "@common/utils/json.replacer.js";
+import { defaultHook, jsonError } from "@common/utils/problem.js";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { BankWhitelistEntrySchema, WhitelistAddressSchema } from "@token/config/response-schemas.js";
+import { BankAccountFields, XRPL_ADDRESS_REGEX } from "@token/config/schemas.js";
+import { type AuthEnv, requireAuth, requireKyc, requireMfa, requireOperationMfa } from "@token/middleware/auth.js";
 import {
   addBankWhitelist,
-  addXrpWhitelist,
+  addXrplWhitelist,
   getBankWhitelist,
-  getXrpWhitelist,
+  getXrplWhitelist,
   removeBankWhitelist,
-  removeXrpWhitelist,
+  removeXrplWhitelist,
 } from "@token/services/whitelist.service.js";
-import type { BankAccount } from "@token/types/user.type.js";
-import type { Response, Router as RouterType } from "express";
-import { Router } from "express";
+import { HTTPException } from "hono/http-exception";
 
-const router: RouterType = Router();
+const app = new OpenAPIHono<AuthEnv>({ defaultHook: defaultHook() });
 
-router.get("/whitelist/xrp", requireAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const whitelist = await getXrpWhitelist(uid);
-    res.json(whitelist);
-  } catch (error) {
-    handleRouteError(error, res, "GET /whitelist/xrp");
-  }
-});
+const readAuth = { security: [{ session: [] }], middleware: [requireAuth] };
+const writeAuth = {
+  security: [{ session: [] }],
+  middleware: [requireAuth, requireKyc, requireMfa, requireOperationMfa],
+};
 
-router.post(
-  "/whitelist/xrp",
-  requireAuth,
-  requireKyc,
-  requireMfa,
-  requireOperationMfa,
-  async (req, res: Response<unknown>) => {
-    try {
-      const { uid } = (req as AuthenticatedRequest).user;
-      const { address, label } = req.body as { address: string; label: string };
+const XrplWhitelistInput = z
+  .object({
+    address: z.string().regex(XRPL_ADDRESS_REGEX, "address must be a valid XRPL address"),
+    label: z.string().min(1),
+  })
+  .meta({ id: "XrplWhitelistInput" });
 
-      const entry = await addXrpWhitelist(uid, address, label);
-      res.status(201).json(entry);
-    } catch (error) {
-      handleRouteError(error, res, "POST /whitelist/xrp");
-    }
+const BankWhitelistInput = z
+  .object({
+    ...BankAccountFields,
+    label: z.string().min(1),
+  })
+  .meta({ id: "BankWhitelistInput" });
+
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/whitelist/xrpl",
+    summary: "List XRPL whitelist addresses",
+    tags: ["Whitelist"],
+    ...readAuth,
+    responses: {
+      200: {
+        content: { "application/json": { schema: z.array(WhitelistAddressSchema) } },
+        description: "XRP whitelist",
+      },
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    return c.json(serializeTimestamps(await getXrplWhitelist(uid)), 200);
   },
 );
 
-router.delete(
-  "/whitelist/xrp/:address",
-  requireAuth,
-  requireKyc,
-  requireMfa,
-  requireOperationMfa,
-  async (req, res: Response<unknown>) => {
-    try {
-      const { uid } = (req as AuthenticatedRequest).user;
-      await removeXrpWhitelist(uid, req.params.address as string);
-      res.json({ status: "ok" });
-    } catch (error) {
-      handleRouteError(error, res, "DELETE /whitelist/xrp/:address");
-    }
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/whitelist/xrpl",
+    summary: "Add an XRPL whitelist address",
+    tags: ["Whitelist"],
+    ...writeAuth,
+    request: { body: { content: { "application/json": { schema: XrplWhitelistInput } }, required: true } },
+    responses: {
+      201: { content: { "application/json": { schema: WhitelistAddressSchema } }, description: "Added" },
+      400: jsonError("Validation error"),
+      401: jsonError("Unauthorized"),
+      403: jsonError("KYC/MFA required"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const { address, label } = c.req.valid("json");
+    const entry = await addXrplWhitelist(uid, address, label);
+    return c.json(serializeTimestamps(entry), 201);
   },
 );
 
-router.get("/whitelist/bank", requireAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const whitelist = await getBankWhitelist(uid);
-    res.json(whitelist);
-  } catch (error) {
-    handleRouteError(error, res, "GET /whitelist/bank");
-  }
-});
-
-router.post(
-  "/whitelist/bank",
-  requireAuth,
-  requireKyc,
-  requireMfa,
-  requireOperationMfa,
-  async (req, res: Response<unknown>) => {
-    try {
-      const { uid } = (req as AuthenticatedRequest).user;
-      const bankAccount = req.body as Omit<BankAccount, "createdAt">;
-
-      const entry = await addBankWhitelist(uid, bankAccount);
-      res.status(201).json(entry);
-    } catch (error) {
-      handleRouteError(error, res, "POST /whitelist/bank");
-    }
+app.openapi(
+  createRoute({
+    method: "delete",
+    path: "/whitelist/xrpl/{address}",
+    summary: "Remove an XRPL whitelist address",
+    tags: ["Whitelist"],
+    ...writeAuth,
+    request: { params: z.object({ address: z.string().meta({ param: { name: "address", in: "path" } }) }) },
+    responses: {
+      200: {
+        content: { "application/json": { schema: z.object({ status: z.literal("ok") }) } },
+        description: "Removed",
+      },
+      401: jsonError("Unauthorized"),
+      403: jsonError("KYC/MFA required"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const { address } = c.req.valid("param");
+    await removeXrplWhitelist(uid, address);
+    return c.json({ status: "ok" as const }, 200);
   },
 );
 
-router.delete(
-  "/whitelist/bank/:id",
-  requireAuth,
-  requireKyc,
-  requireMfa,
-  requireOperationMfa,
-  async (req, res: Response<unknown>) => {
-    try {
-      const { uid } = (req as AuthenticatedRequest).user;
-      const id = req.params.id as string;
-      const [branchCode, accountNumber] = id.split("-");
-      if (!branchCode || !accountNumber) {
-        res.status(400).json({ error: "Invalid: id must be in format branchCode-accountNumber" });
-        return;
-      }
-
-      await removeBankWhitelist(uid, branchCode, accountNumber);
-      res.json({ status: "ok" });
-    } catch (error) {
-      handleRouteError(error, res, "DELETE /whitelist/bank/:id");
-    }
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/whitelist/bank",
+    summary: "List bank whitelist accounts",
+    tags: ["Whitelist"],
+    ...readAuth,
+    responses: {
+      200: {
+        content: { "application/json": { schema: z.array(BankWhitelistEntrySchema) } },
+        description: "Bank whitelist",
+      },
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    return c.json(serializeTimestamps(await getBankWhitelist(uid)), 200);
   },
 );
 
-export default router;
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/whitelist/bank",
+    summary: "Add a bank whitelist account",
+    tags: ["Whitelist"],
+    ...writeAuth,
+    request: { body: { content: { "application/json": { schema: BankWhitelistInput } }, required: true } },
+    responses: {
+      201: { content: { "application/json": { schema: BankWhitelistEntrySchema } }, description: "Added" },
+      400: jsonError("Validation error"),
+      401: jsonError("Unauthorized"),
+      403: jsonError("KYC/MFA required"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const bankAccount = c.req.valid("json");
+    const entry = await addBankWhitelist(uid, bankAccount);
+    return c.json(serializeTimestamps(entry), 201);
+  },
+);
+
+app.openapi(
+  createRoute({
+    method: "delete",
+    path: "/whitelist/bank/{id}",
+    summary: "Remove a bank whitelist account",
+    tags: ["Whitelist"],
+    ...writeAuth,
+    request: { params: z.object({ id: z.string().meta({ param: { name: "id", in: "path" } }) }) },
+    responses: {
+      200: {
+        content: { "application/json": { schema: z.object({ status: z.literal("ok") }) } },
+        description: "Removed",
+      },
+      400: jsonError("Invalid id format"),
+      401: jsonError("Unauthorized"),
+      403: jsonError("KYC/MFA required"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const { id } = c.req.valid("param");
+    const [branchCode, accountNumber] = id.split("-");
+    if (!branchCode || !accountNumber) {
+      throw new HTTPException(400, { message: "Invalid: id must be in format branchCode-accountNumber" });
+    }
+    await removeBankWhitelist(uid, branchCode, accountNumber);
+    return c.json({ status: "ok" as const }, 200);
+  },
+);
+
+export default app;

@@ -1,26 +1,40 @@
-import { handleRouteError } from "@common/utils/error.handler.js";
-import { type AuthenticatedRequest, requireAuth } from "@token/middleware/auth.js";
+import { defaultHook, jsonError } from "@common/utils/problem.js";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { type AuthEnv, requireAuth } from "@token/middleware/auth.js";
 import { generateMfaToken } from "@token/services/mfa-token.service.js";
-import type { Response, Router as RouterType } from "express";
-import { Router } from "express";
+import { HTTPException } from "hono/http-exception";
 
-const router: RouterType = Router();
+const app = new OpenAPIHono<AuthEnv>({ defaultHook: defaultHook() });
 
-router.post("/mfa/verify", requireAuth, (req, res: Response<unknown>) => {
-  try {
-    const { uid, mfaVerified } = (req as AuthenticatedRequest).user;
-
+app.openapi(
+  createRoute({
+    method: "post",
+    path: "/mfa/verify",
+    summary: "Issue a short-lived operation MFA token",
+    tags: ["MFA"],
+    security: [{ session: [] }],
+    middleware: [requireAuth],
+    responses: {
+      200: {
+        content: {
+          "application/json": {
+            schema: z.object({ status: z.literal("ok"), mfaToken: z.string(), expiresIn: z.number() }),
+          },
+        },
+        description: "MFA token issued",
+      },
+      401: jsonError("Unauthorized"),
+      403: jsonError("MFA not verified in ID token"),
+    },
+  }),
+  (c) => {
+    const { uid, mfaVerified } = c.get("user");
     if (!mfaVerified) {
-      res.status(403).json({ error: "MFA not verified in ID token" });
-      return;
+      throw new HTTPException(403, { message: "MFA not verified in ID token" });
     }
-
     const mfaToken = generateMfaToken(uid);
+    return c.json({ status: "ok" as const, mfaToken, expiresIn: 300 }, 200);
+  },
+);
 
-    res.json({ status: "ok", mfaToken, expiresIn: 300 });
-  } catch (error) {
-    handleRouteError(error, res, "POST /mfa/verify");
-  }
-});
-
-export default router;
+export default app;

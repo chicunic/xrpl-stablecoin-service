@@ -1,4 +1,3 @@
-import type express from "express";
 import {
   MOCK_USER_DOC_BASE,
   MOCK_VIRTUAL_ACCOUNT_DOC,
@@ -14,19 +13,11 @@ import { RestTestHelper, createCompleteTestApp } from "../utils/server.rest";
 vi.mock("../../src/token/services/wallet.service", () => ({
   deriveWallet: vi.fn().mockResolvedValue({ address: "rMockAddress123", publicKey: "mock-pub-key" }),
   getWalletForSigning: vi.fn().mockResolvedValue({ sign: vi.fn() }),
-  allocateXrpAddressIndex: vi.fn().mockResolvedValue(1),
 }));
 
 // Mock faucet.service to avoid real XRPL faucet calls
 vi.mock("../../src/token/services/faucet.service", () => ({
   fundAccount: vi.fn().mockResolvedValue({ balance: 1000 }),
-}));
-
-// Mock trustline.service to avoid real XRPL trustline calls
-vi.mock("../../src/token/services/trustline.service", () => ({
-  hasTrustLine: vi.fn().mockResolvedValue(false),
-  setTrustLine: vi.fn().mockResolvedValue("mock-trustline-tx-hash"),
-  ensureTrustLine: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock bank config to avoid real Secret Manager calls
@@ -49,7 +40,7 @@ const mockFetch = vi.fn().mockResolvedValue({
 global.fetch = mockFetch;
 
 describe("Auth Routes - REST API Integration", () => {
-  let app: express.Application;
+  let app: Awaited<ReturnType<typeof createCompleteTestApp>>;
   let helper: RestTestHelper;
 
   beforeAll(async () => {
@@ -126,8 +117,10 @@ describe("Auth Routes - REST API Integration", () => {
 
     it("should set up wallet for user without wallet", async () => {
       // 1st get: walletRef.get() → wallet doesn't exist
-      // 2nd get: walletRef.get() after set → wallet with data
+      // 2nd get: bipIndex counter inside incrementCounter → starts at 0
+      // 3rd get: walletRef.get() after set → wallet with data
       mockFirestoreService.get
+        .mockResolvedValueOnce({ exists: false, data: () => ({}) })
         .mockResolvedValueOnce({ exists: false, data: () => ({}) })
         .mockResolvedValueOnce({ exists: true, data: () => MOCK_WALLET_DOC });
 

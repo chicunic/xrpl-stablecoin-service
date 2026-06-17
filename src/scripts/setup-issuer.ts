@@ -79,19 +79,22 @@ async function step2AccountSet(): Promise<void> {
     TxnSignature: signature,
   };
 
-  const result = await client.submit(signedTx);
+  const result = await client.submitAndWait(signedTx);
 
-  if (result.result.engine_result !== "tesSUCCESS") {
-    throw new Error(`AccountSet failed: ${result.result.engine_result_message}`);
+  // Read the FINAL on-ledger outcome, not the provisional engine_result of a bare submit.
+  const meta = result.result.meta;
+  const txResult = typeof meta === "object" ? meta.TransactionResult : undefined;
+  if (txResult !== "tesSUCCESS") {
+    throw new Error(`AccountSet failed: ${txResult ?? "unknown"}`);
   }
 
-  console.log(`AccountSet submitted. Hash: ${result.result.tx_json.hash ?? "unknown"}`);
+  console.log(`AccountSet validated. Hash: ${result.result.hash}`);
 }
 
 async function main(): Promise<void> {
   console.log(`Issuer address: ${tokenConfig.issuerAddress}`);
   console.log(`Domain: ${tokenConfig.domain}`);
-  console.log(`Token: ${tokenConfig.tokenId} (${tokenConfig.currency})`);
+  console.log(`Token: ${tokenConfig.tokenId} (${tokenConfig.name})`);
 
   await step1FundIssuer();
   await step2AccountSet();

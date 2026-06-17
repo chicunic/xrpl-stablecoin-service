@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { getFirestore } from "@common/config/firebase.js";
-import { NotFoundError } from "@common/utils/error.handler.js";
+import { ForbiddenError, NotFoundError } from "@common/utils/error.handler.js";
 import { type TokenConfig, getTokenConfig } from "@token/config/tokens.js";
 import { getUserWallet } from "@token/services/auth.service.js";
+import { holderHasAcceptedCredential } from "@token/services/credential.service.js";
 import { creditFiat, debitFiat } from "@token/services/fiat.service.js";
-import { createTrustlineDoc, recordXrpTransaction } from "@token/services/token-balance.service.js";
-import { ensureTrustLine } from "@token/services/trustline.service.js";
-import { sendToken, sendTokenFromUser } from "@token/services/xrpl.service.js";
+import { createAuthorizationDoc, recordMptTransaction } from "@token/services/token-balance.service.js";
+import { authorize, burn, hasMptAuthorization, issuerAuthorize, mint } from "@token/services/xrpl.service.js";
 import type { ExchangeOrder } from "@token/types/exchange-order.type.js";
 import type { Wallet } from "@token/types/user.type.js";
 import { FieldValue } from "firebase-admin/firestore";
@@ -74,13 +74,35 @@ async function resolveTokenAndWallet(
 }
 
 /**
+ * Ensure the holder can receive tokens:
+ * 0. KYC gate: holder must hold an accepted credential the token accepts
+ * 1. holder opt-in (MPTokenAuthorize)
+ * 2. issuer approve (required by tfMPTRequireAuth, must precede mint or tecNO_AUTH)
+ * Idempotent: skips opt-in if the MPToken object already exists.
+ */
+async function ensureAuthorized(wallet: Wallet, token: TokenConfig): Promise<void> {
+  // KYC enforcement (application layer): the issuer only authorizes holders with a valid on-chain credential; redundant once MPToken DomainID is usable on-chain.
+  const kycOk = await holderHasAcceptedCredential(wallet.address, token.acceptedCredentials);
+  if (!kycOk) {
+    throw new ForbiddenError("KYC credential required to hold this token");
+  }
+
+  const alreadyAuthorized = await hasMptAuthorization(wallet.address, token.mptIssuanceId);
+  if (!alreadyAuthorized) {
+    await authorize(wallet.bipIndex, wallet.address, token.mptIssuanceId);
+  }
+  // issuer approval is idempotent on XRPL (no-op if already authorized)
+  await issuerAuthorize(wallet.address, token.mptIssuanceId, token);
+}
+
+/**
  * fiat -> token flow:
  * 1. Create order (pending)
  * 2. Debit fiat (fiat_debited)
  * 3. Send token on XRPL (completed)
  * On XRPL failure: refund fiat (failed)
  */
-export async function exchangeFiatToToken(userId: string, tokenId: string, fiatAmount: number): Promise<ExchangeOrder> {
+export async function exchangeFiatToMpt(userId: string, tokenId: string, fiatAmount: number): Promise<ExchangeOrder> {
   const { token, tokenConfig, wallet } = await resolveTokenAndWallet(tokenId, userId);
 
   // 1:1 fixed rate for stablecoin
@@ -89,7 +111,7 @@ export async function exchangeFiatToToken(userId: string, tokenId: string, fiatA
   const orderId = await createOrder(userId, tokenId, "fiat_to_token", fiatAmount);
 
   try {
-    await debitFiat(userId, fiatAmount, "exchange_out", `JPY -> ${token.currency}`, orderId);
+    await debitFiat(userId, fiatAmount, "exchange_out", `JPY -> ${token.name}`, orderId);
     await updateOrderStatus(orderId, "fiat_debited");
   } catch (error) {
     await updateOrderStatus(orderId, "failed", {
@@ -99,31 +121,16 @@ export async function exchangeFiatToToken(userId: string, tokenId: string, fiatA
   }
 
   try {
-    await ensureTrustLine(wallet.bipIndex, wallet.address, token.currency, token.issuerAddress);
-    await createTrustlineDoc(userId, token.currency, token.issuerAddress);
+    await ensureAuthorized(wallet, token);
+    await createAuthorizationDoc(userId, token.mptIssuanceId);
 
-    const txHash = await sendToken(
-      wallet.address,
-      token.currency,
-      tokenAmount.toString(),
-      tokenConfig.issuerAddress,
-      tokenConfig.kmsKeyPath,
-      tokenConfig.signingPublicKey,
-    );
+    const txHash = await mint(wallet.address, token.mptIssuanceId, tokenAmount.toString(), tokenConfig);
 
-    await recordXrpTransaction(
-      userId,
-      tokenId,
-      "exchange_in",
-      tokenAmount,
-      `JPY -> ${token.currency}`,
-      txHash,
-      orderId,
-    );
+    await recordMptTransaction(userId, tokenId, "exchange_in", tokenAmount, `JPY -> ${token.name}`, txHash, orderId);
 
     await updateOrderStatus(orderId, "completed", { xrplTxHash: txHash });
   } catch (error) {
-    await creditFiat(userId, fiatAmount, "exchange_in", `JPY -> ${token.currency} 返金`, orderId);
+    await creditFiat(userId, fiatAmount, "exchange_in", `JPY -> ${token.name} 返金`, orderId);
     await updateOrderStatus(orderId, "failed", {
       failureReason: `XRPL mint failed: ${(error as Error).message}`,
     });
@@ -140,11 +147,7 @@ export async function exchangeFiatToToken(userId: string, tokenId: string, fiatA
  * 3. Debit token balance + credit fiat (completed)
  * On XRPL failure: no balance change (failed)
  */
-export async function exchangeTokenToFiat(
-  userId: string,
-  tokenId: string,
-  tokenAmount: number,
-): Promise<ExchangeOrder> {
+export async function exchangeMptToFiat(userId: string, tokenId: string, tokenAmount: number): Promise<ExchangeOrder> {
   const { token, wallet } = await resolveTokenAndWallet(tokenId, userId);
 
   // 1:1 fixed rate for stablecoin
@@ -154,11 +157,10 @@ export async function exchangeTokenToFiat(
 
   let txHash: string;
   try {
-    txHash = await sendTokenFromUser(
+    txHash = await burn(
       wallet.bipIndex,
       wallet.address,
-      token.issuerAddress,
-      token.currency,
+      token.mptIssuanceId,
       tokenAmount.toString(),
       token.issuerAddress,
     );
@@ -171,17 +173,9 @@ export async function exchangeTokenToFiat(
   }
 
   try {
-    await recordXrpTransaction(
-      userId,
-      tokenId,
-      "exchange_out",
-      tokenAmount,
-      `${token.currency} -> JPY`,
-      txHash,
-      orderId,
-    );
+    await recordMptTransaction(userId, tokenId, "exchange_out", tokenAmount, `${token.name} -> JPY`, txHash, orderId);
 
-    await creditFiat(userId, fiatAmount, "exchange_in", `${token.currency} -> JPY`, orderId);
+    await creditFiat(userId, fiatAmount, "exchange_in", `${token.name} -> JPY`, orderId);
 
     await updateOrderStatus(orderId, "completed");
   } catch (error) {

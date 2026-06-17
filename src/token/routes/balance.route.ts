@@ -1,82 +1,145 @@
-import { handleRouteError } from "@common/utils/error.handler.js";
+import { serializeTimestamps } from "@common/utils/json.replacer.js";
+import { defaultHook, jsonError } from "@common/utils/problem.js";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import {
+  FiatBalanceSchema,
+  FiatTransactionSchema,
+  MptBalancesResponseSchema,
+  MptTransactionSchema,
+  TokenAuthorizationStatusSchema,
+} from "@token/config/response-schemas.js";
 import { getAllTokenConfigs } from "@token/config/tokens.js";
-import { type AuthenticatedRequest, requireAuth } from "@token/middleware/auth.js";
+import { type AuthEnv, requireAuth } from "@token/middleware/auth.js";
 import { getUserWallet } from "@token/services/auth.service.js";
 import { getFiatBalance, getFiatTransactions } from "@token/services/fiat.service.js";
-import { getTrustlines, getXrpTransactions } from "@token/services/token-balance.service.js";
-import { getBalances } from "@token/services/xrpl.service.js";
-import type { Response, Router as RouterType } from "express";
-import { Router } from "express";
+import { getAuthorizations, getMptTransactions } from "@token/services/token-balance.service.js";
+import { getMptBalances } from "@token/services/xrpl.service.js";
+import { HTTPException } from "hono/http-exception";
 
-const router: RouterType = Router();
+const app = new OpenAPIHono<AuthEnv>({ defaultHook: defaultHook() });
 
-router.get("/balance/fiat", requireAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
+const auth = { security: [{ session: [] }], middleware: [requireAuth] };
+
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/balance/fiat",
+    summary: "Get the current user's fiat balance",
+    tags: ["Balance"],
+    ...auth,
+    responses: {
+      200: { content: { "application/json": { schema: FiatBalanceSchema } }, description: "Fiat balance" },
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
     const balance = await getFiatBalance(uid);
-    res.json({ balance });
-  } catch (error) {
-    handleRouteError(error, res, "GET /balance/fiat");
-  }
-});
+    return c.json({ balance }, 200);
+  },
+);
 
-router.get("/balance/xrp", requireAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/balance/mpt",
+    summary: "Get the current user's MPToken balances",
+    tags: ["Balance"],
+    ...auth,
+    responses: {
+      200: { content: { "application/json": { schema: MptBalancesResponseSchema } }, description: "MPToken balances" },
+      400: jsonError("Wallet not set up"),
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
     const wallet = await getUserWallet(uid);
-
     if (!wallet) {
-      res.status(400).json({ error: "Wallet not set up" });
-      return;
+      throw new HTTPException(400, { message: "Wallet not set up" });
     }
+    const balances = await getMptBalances(wallet.address);
+    return c.json(serializeTimestamps({ address: wallet.address, balances }), 200);
+  },
+);
 
-    const balances = await getBalances(wallet.address);
-    res.json({ address: wallet.address, balances });
-  } catch (error) {
-    handleRouteError(error, res, "GET /balance/xrp");
-  }
-});
-
-router.get("/balance/fiat/transactions", requireAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/balance/fiat/transactions",
+    summary: "List the current user's fiat transactions",
+    tags: ["Balance"],
+    ...auth,
+    responses: {
+      200: {
+        content: { "application/json": { schema: z.array(FiatTransactionSchema) } },
+        description: "Fiat transactions",
+      },
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
     const transactions = await getFiatTransactions(uid);
-    res.json(transactions);
-  } catch (error) {
-    handleRouteError(error, res, "GET /balance/fiat/transactions");
-  }
-});
+    return c.json(serializeTimestamps(transactions), 200);
+  },
+);
 
-router.get("/balance/xrp/transactions", requireAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
-    const transactions = await getXrpTransactions(uid);
-    res.json(transactions);
-  } catch (error) {
-    handleRouteError(error, res, "GET /balance/xrp/transactions");
-  }
-});
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/balance/mpt/transactions",
+    summary: "List the current user's MPToken transactions",
+    tags: ["Balance"],
+    ...auth,
+    responses: {
+      200: {
+        content: { "application/json": { schema: z.array(MptTransactionSchema) } },
+        description: "MPToken transactions",
+      },
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
+    const transactions = await getMptTransactions(uid);
+    return c.json(serializeTimestamps(transactions), 200);
+  },
+);
 
-router.get("/balance/trustlines", requireAuth, async (req, res: Response<unknown>) => {
-  try {
-    const { uid } = (req as AuthenticatedRequest).user;
+app.openapi(
+  createRoute({
+    method: "get",
+    path: "/balance/authorizations",
+    summary: "List per-token authorization status for the current user",
+    tags: ["Balance"],
+    ...auth,
+    responses: {
+      200: {
+        content: { "application/json": { schema: z.array(TokenAuthorizationStatusSchema) } },
+        description: "Authorizations",
+      },
+      401: jsonError("Unauthorized"),
+    },
+  }),
+  async (c) => {
+    const { uid } = c.get("user");
 
     const tokens = getAllTokenConfigs();
-    const userTrustlines = await getTrustlines(uid);
-    const trustlineSet = new Set(userTrustlines.map((t) => `${t.currency}:${t.issuer}`));
+    const userAuthorizations = await getAuthorizations(uid);
+    const authorizationSet = new Set(userAuthorizations.map((a) => a.mptIssuanceId));
 
     const result = tokens.map((token) => ({
       tokenId: token.tokenId,
       name: token.name,
-      currency: token.currency,
       issuerAddress: token.issuerAddress,
-      hasTrustline: trustlineSet.has(`${token.currency}:${token.issuerAddress}`),
+      mptIssuanceId: token.mptIssuanceId,
+      // Guard empty id: an unconfigured issuance must not report as authorized.
+      hasAuthorization: token.mptIssuanceId !== "" && authorizationSet.has(token.mptIssuanceId),
     }));
 
-    res.json(result);
-  } catch (error) {
-    handleRouteError(error, res, "GET /balance/trustlines");
-  }
-});
+    return c.json(result, 200);
+  },
+);
 
-export default router;
+export default app;

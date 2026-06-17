@@ -21,9 +21,8 @@ export interface WhitelistAddress {
   createdAt: Timestamp;
 }
 
-export interface Trustline {
-  currency: string;
-  issuer: string;
+export interface MptAuthorization {
+  mptIssuanceId: string;
   createdAt: Timestamp;
 }
 

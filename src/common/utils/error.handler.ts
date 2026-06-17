@@ -1,6 +1,5 @@
-export interface ErrorResponse {
-  error: string;
-}
+import type { Context } from "hono";
+import { problemResponse } from "./problem.js";
 
 export class AppError extends Error {
   constructor(
@@ -29,17 +28,16 @@ export class ConflictError extends AppError {
   }
 }
 
-interface ErrorResponseSender {
-  status: (code: number) => { json: (body: ErrorResponse) => void };
+export class ForbiddenError extends AppError {
+  constructor(message = "Forbidden") {
+    super(message, 403);
+  }
 }
 
-export function handleRouteError(error: unknown, res: ErrorResponseSender, context: string): void {
-  console.error(`Error in ${context}:`, error);
-
-  if (error instanceof AppError) {
-    res.status(error.statusCode).json({ error: error.message });
-    return;
-  }
-
-  res.status(500).json({ error: "Internal server error" });
+/**
+ * Map an AppError to an RFC 9457 Problem Details response. For use in Hono's
+ * `app.onError`. Non-AppError values fall through (caller emits a 500).
+ */
+export function appErrorToProblem(error: AppError, c: Context): Response {
+  return problemResponse(c, error.statusCode as Parameters<typeof problemResponse>[1], error.message);
 }
