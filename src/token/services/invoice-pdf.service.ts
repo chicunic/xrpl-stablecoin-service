@@ -30,7 +30,7 @@ export async function parseInvoicePdf(buffer: Buffer): Promise<ParsedInvoiceData
   }
 
   if (!qrData) {
-    throw new ValidationError("Not a NexBridge invoice PDF");
+    throw new ValidationError("Not a valid invoice PDF");
   }
 
   let parsed: unknown;

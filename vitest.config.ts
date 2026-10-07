@@ -19,9 +19,9 @@ export default defineConfig({
       exclude: ["src/**/*.d.ts", "src/token/index.ts", "src/bank/index.ts", "src/common/config/firebase.ts"],
     },
     alias: {
-      "@token": path.resolve(__dirname, "./src/token"),
-      "@bank": path.resolve(__dirname, "./src/bank"),
-      "@common": path.resolve(__dirname, "./src/common"),
+      "@token": path.resolve(import.meta.dirname, "./src/token"),
+      "@bank": path.resolve(import.meta.dirname, "./src/bank"),
+      "@common": path.resolve(import.meta.dirname, "./src/common"),
     },
     testTimeout: 15000,
     setupFiles: ["./tests/setup.ts"],

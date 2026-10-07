@@ -8,9 +8,9 @@ export default defineConfig({
     environment: "node",
     include: ["tests/integration/**/*.integration.test.ts"],
     alias: {
-      "@token": path.resolve(__dirname, "./src/token"),
-      "@bank": path.resolve(__dirname, "./src/bank"),
-      "@common": path.resolve(__dirname, "./src/common"),
+      "@token": path.resolve(import.meta.dirname, "./src/token"),
+      "@bank": path.resolve(import.meta.dirname, "./src/bank"),
+      "@common": path.resolve(import.meta.dirname, "./src/common"),
     },
     testTimeout: 120_000,
     fileParallelism: false,

@@ -56,7 +56,6 @@ function stringVal(v: string) {
 function _intVal(v: number) {
   return { integerValue: String(v) } as const;
 }
-void _intVal;
 function mapVal(fields: Record<string, unknown>) {
   return { mapValue: { fields } };
 }

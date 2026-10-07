@@ -7,6 +7,7 @@ import type { TestResponse } from "./helpers";
  * returns a `TestResponse` with the body already parsed.
  */
 async function send(
+  requestApp: typeof app,
   method: string,
   url: string,
   data?: Record<string, unknown>,
@@ -20,7 +21,7 @@ async function send(
   }
   init.headers = hdrs;
 
-  const res = await app.request(url, init);
+  const res = await requestApp.request(url, init);
 
   let body: unknown = undefined;
   const text = await res.text();
@@ -35,25 +36,22 @@ async function send(
 }
 
 export class RestTestHelper {
-  // Accepts an optional app for backward compatibility with `new RestTestHelper(app)`; unused.
-  constructor(_app?: unknown) {
-    void _app;
-  }
+  constructor(private readonly requestApp: typeof app = app) {}
 
   async post(url: string, data: Record<string, unknown>, headers?: Record<string, string>): Promise<TestResponse> {
-    return send("POST", url, data, headers);
+    return send(this.requestApp, "POST", url, data, headers);
   }
 
   async get(url: string, headers?: Record<string, string>): Promise<TestResponse> {
-    return send("GET", url, undefined, headers);
+    return send(this.requestApp, "GET", url, undefined, headers);
   }
 
   async delete(url: string, headers?: Record<string, string>): Promise<TestResponse> {
-    return send("DELETE", url, undefined, headers);
+    return send(this.requestApp, "DELETE", url, undefined, headers);
   }
 
   async patch(url: string, data: Record<string, unknown>, headers?: Record<string, string>): Promise<TestResponse> {
-    return send("PATCH", url, data, headers);
+    return send(this.requestApp, "PATCH", url, data, headers);
   }
 }
 

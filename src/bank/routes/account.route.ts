@@ -85,7 +85,6 @@ app.openapi(
     const account = await login(branchCode, accountNumber, pin);
     const token = generateToken(account.accountId);
     const { pin: _pin, ...safeAccount } = account;
-    void _pin;
     return c.json(serializeTimestamps({ token, account: safeAccount }), 200);
   },
 );
@@ -157,7 +156,6 @@ app.openapi(
       throw new HTTPException(404, { message: "Account not found" });
     }
     const { pin: _pin, ...safeAccount } = account;
-    void _pin;
     return c.json(serializeTimestamps(safeAccount), 200);
   },
 );

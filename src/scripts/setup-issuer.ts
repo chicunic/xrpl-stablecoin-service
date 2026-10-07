@@ -7,7 +7,7 @@ import { fundAccount } from "@token/services/faucet.service.js";
 import { signWithKms } from "@token/services/signing.service.js";
 import { disconnect, getClient } from "@token/services/xrpl.service.js";
 import type { AccountSet } from "xrpl";
-import { encodeForSigning } from "xrpl";
+import { AccountSetAsfFlags, encodeForSigning } from "xrpl";
 
 const tokenConfig = getTokenConfig("JPYN");
 
@@ -66,7 +66,7 @@ async function step2AccountSet(): Promise<void> {
     TransactionType: "AccountSet",
     Account: tokenConfig.issuerAddress,
     Domain: domainHex,
-    SetFlag: 8, // asfDefaultRipple
+    SetFlag: AccountSetAsfFlags.asfDefaultRipple,
   };
 
   const prepared = await client.autofill(tx);

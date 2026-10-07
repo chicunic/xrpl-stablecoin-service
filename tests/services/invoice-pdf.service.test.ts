@@ -24,7 +24,7 @@ describe("Invoice PDF Service", () => {
   it("should throw error when no QR code found", async () => {
     mockJsQR.mockReturnValue(null);
     const buffer = Buffer.from("fake pdf");
-    await expect(parseInvoicePdf(buffer)).rejects.toThrow("Not a NexBridge invoice PDF");
+    await expect(parseInvoicePdf(buffer)).rejects.toThrow("Not a valid invoice PDF");
   });
 
   it("should parse valid invoice data from QR code in PDF", async () => {

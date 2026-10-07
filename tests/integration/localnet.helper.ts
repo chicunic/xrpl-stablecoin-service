@@ -13,7 +13,7 @@ import { createDomain } from "@token/services/domain.service.js";
 import { deriveWallet } from "@token/services/wallet.service.js";
 import { createIssuance, getClient } from "@token/services/xrpl.service.js";
 import type { AccountSet, Client, Payment, TransactionMetadata } from "xrpl";
-import { Wallet, xrpToDrops } from "xrpl";
+import { AccountSetAsfFlags, Wallet, xrpToDrops } from "xrpl";
 import ECDSA from "xrpl/dist/npm/ECDSA.js";
 
 // Standalone rippled genesis account (secp256k1), funded at ledger genesis.
@@ -119,7 +119,7 @@ export async function bootstrapLocalnetToken(): Promise<LocalnetSetup> {
     TransactionType: "AccountSet",
     Account: issuer.address,
     Domain: Buffer.from(config.domain).toString("hex").toUpperCase(),
-    SetFlag: 8, // asfDefaultRipple
+    SetFlag: AccountSetAsfFlags.asfDefaultRipple,
   });
   const signedAccountSet = issuer.sign(accountSet);
   const accountSetResult = await client.submitAndWait(signedAccountSet.tx_blob);
